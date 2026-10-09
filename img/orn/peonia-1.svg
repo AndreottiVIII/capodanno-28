@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <g id="peonia">
+      <g fill="#F4C3C6" stroke="#B85468" stroke-width="1.2">
+        <ellipse cx="0" cy="-27" rx="15" ry="19"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(40)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(80)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(160)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(200)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(240)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(280)"/>
+        <ellipse cx="0" cy="-27" rx="15" ry="19" transform="rotate(320)"/>
+      </g>
+      <g fill="#E8909F" stroke="#A8425A" stroke-width="1">
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(20)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(71)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(122)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(173)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(224)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(275)"/>
+        <ellipse cx="0" cy="-17" rx="11" ry="13" transform="rotate(326)"/>
+      </g>
+      <g fill="#C9566F" stroke="#8E2A45" stroke-width="1">
+        <ellipse cx="0" cy="-9" rx="8" ry="9" transform="rotate(10)"/>
+        <ellipse cx="0" cy="-9" rx="8" ry="9" transform="rotate(82)"/>
+        <ellipse cx="0" cy="-9" rx="8" ry="9" transform="rotate(154)"/>
+        <ellipse cx="0" cy="-9" rx="8" ry="9" transform="rotate(226)"/>
+        <ellipse cx="0" cy="-9" rx="8" ry="9" transform="rotate(298)"/>
+      </g>
+      <circle r="6" fill="#8E2A45"/>
+      <g fill="#F2C46B">
+        <circle cx="0" cy="-3" r="1.6"/><circle cx="3" cy="1.5" r="1.6"/><circle cx="-3" cy="1.5" r="1.6"/><circle cx="0" cy="3.5" r="1.2"/>
+      </g>
+    </g>
+    <g id="foglia">
+      <path d="M0 0 C 10 -11, 36 -13, 56 0 C 36 11, 10 11, 0 0 Z" fill="#4E8F78" stroke="#24493E" stroke-width="1.2"/>
+      <path d="M3 0 L52 0 M18 0 L28 -6 M30 0 L40 -5 M18 0 L28 6 M30 0 L40 5" stroke="#24493E" stroke-width=".9" fill="none"/>
+    </g>
+    <g id="fogliachiara">
+      <path d="M0 0 C 9 -9, 30 -11, 46 0 C 30 9, 9 9, 0 0 Z" fill="#86BBA2" stroke="#2F5E4F" stroke-width="1.1"/>
+      <path d="M3 0 L42 0" stroke="#2F5E4F" stroke-width=".9" fill="none"/>
+    </g>
+    <g id="pruno">
+      <g fill="#F7E6CC" stroke="#C99A5B" stroke-width=".8">
+        <circle cx="0" cy="-5.5" r="5"/><circle cx="5.2" cy="-1.7" r="5"/><circle cx="3.2" cy="4.5" r="5"/><circle cx="-3.2" cy="4.5" r="5"/><circle cx="-5.2" cy="-1.7" r="5"/>
+      </g>
+      <circle r="2.6" fill="#E2A15C"/>
+    </g>
+    <g id="bocciolo">
+      <ellipse cx="0" cy="-8" rx="9" ry="13" fill="#E8909F" stroke="#A8425A" stroke-width="1"/>
+      <path d="M-9 -2 C -6 6, 6 6, 9 -2 C 5 2, -5 2, -9 -2 Z" fill="#4E8F78" stroke="#24493E" stroke-width="1"/>
+    </g>
+  </defs>
+
+  <g fill="none" stroke="#4A2E26" stroke-linecap="round">
+    <path d="M410 22 C 340 44, 286 88, 236 158 S 150 262, 82 306" stroke-width="6"/>
+    <path d="M318 62 C 300 104, 306 146, 336 184" stroke-width="3.5"/>
+    <path d="M246 146 C 206 136, 176 146, 146 172" stroke-width="3"/>
+    <path d="M160 236 C 150 270, 162 300, 186 324" stroke-width="2.6"/>
+    <path d="M378 30 C 384 60, 400 76, 412 82" stroke-width="2.4"/>
+  </g>
+
+  <use xlink:href="#foglia" transform="translate(252 132) rotate(148) scale(2.1)"/>
+  <use xlink:href="#foglia" transform="translate(252 132) rotate(214) scale(1.9)"/>
+  <use xlink:href="#fogliachiara" transform="translate(252 132) rotate(95) scale(2)"/>
+  <use xlink:href="#foglia" transform="translate(124 252) rotate(118) scale(1.6)"/>
+  <use xlink:href="#fogliachiara" transform="translate(124 252) rotate(18) scale(1.6)"/>
+  <use xlink:href="#foglia" transform="translate(124 252) rotate(250) scale(1.5)"/>
+  <use xlink:href="#fogliachiara" transform="translate(318 66) rotate(200) scale(1.3)"/>
+  <use xlink:href="#foglia" transform="translate(336 184) rotate(60) scale(1.2)"/>
+
+  <use xlink:href="#peonia" transform="translate(252 132) scale(1.55)"/>
+  <use xlink:href="#peonia" transform="translate(124 252) scale(1.12) rotate(15)"/>
+  <use xlink:href="#bocciolo" transform="translate(338 188) rotate(160) scale(1.2)"/>
+  <use xlink:href="#bocciolo" transform="translate(186 326) rotate(150)"/>
+
+  <use xlink:href="#pruno" transform="translate(372 40)"/>
+  <use xlink:href="#pruno" transform="translate(395 70) scale(.8)"/>
+  <use xlink:href="#pruno" transform="translate(150 172) scale(.9)"/>
+  <use xlink:href="#pruno" transform="translate(84 306) scale(.85)"/>
+  <use xlink:href="#pruno" transform="translate(300 96) scale(.7)"/>
+  <circle cx="352" cy="52" r="3" fill="#E2A15C"/>
+  <circle cx="176" cy="152" r="2.6" fill="#E2A15C"/>
+  <circle cx="104" cy="292" r="2.4" fill="#E2A15C"/>
+</svg>
