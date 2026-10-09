@@ -22,7 +22,7 @@ function buildChrome() {
     h('a', { class: 'brand', href: '#oggi' }, h('span', { class: 'seal-big', 'aria-hidden': 'true' }, '圍', h('br'), '棋'), h('span', {}, 'Capodanno 28')),
     h('div', { class: 'side-filo', id: 'sideFilo' }),
     h('nav', { class: 'side-nav', 'aria-label': 'Sezioni' }, ...NAV.map(([id, label]) => h('a', { href: '#' + id, 'data-v': id }, label))),
-    h('button', { class: 'office-btn', type: 'button', onclick: () => Office.show(), title: 'Nasconde tutto dietro un foglio di calcolo' }, 'Modalità ufficio', h('kbd', {}, 'Esc')),
+    h('button', { class: 'office-btn', type: 'button', onclick: () => Office.show(), title: 'Il vostro tappeto a tutto schermo, come salvaschermo' }, 'Modalità ufficio', h('kbd', {}, 'Esc')),
     h('img', { class: 'side-orn', alt: '', src: 'img/orn/vaso-1.svg' }));
   tabs.append(...NAV.filter(x => x[3]).map(([id, label, d]) => h('a', { href: '#' + id, 'data-v': id }, icon(d), h('span', {}, label))));
   $('#menuBtn').onclick = openMenu;
@@ -59,7 +59,7 @@ function filoBeads(n, small) {
 function unlockedOrn() { const t = Store.perleCoppia(); return ORN.filter(o => o.soglia <= t); }
 function nextOrn() { const t = Store.perleCoppia(); return ORN.find(o => o.soglia > t) || null; }
 const ORN_SLOTS = [
-  { cls: 'o-tr', w: [230, 330] }, { cls: 'o-ml', w: [150, 220] }, { cls: 'o-br', w: [170, 260] }, { cls: 'o-bl', w: [110, 160] },
+  { cls: 'o-tr', w: [230, 330] }, { cls: 'o-mr', w: [150, 220] }, { cls: 'o-br', w: [170, 260] }, { cls: 'o-bl', w: [110, 160] },
 ];
 function decorate(view, count) {
   const pool = shuffle(unlockedOrn().slice());
@@ -77,7 +77,7 @@ function decorate(view, count) {
 // ---------- Router ----------
 const VIEWS = {
   oggi: viewToday, percorso: viewPath, lezione: viewLesson, esercizi: viewUnitProblems,
-  problemi: viewProblems, livello: viewLevel, catalogo: viewCatalogRun, tema: viewTheme, infinito: viewEndless, ripasso: viewReview,
+  problemi: viewProblems, livello: viewLevel, catalogo: viewCatalogRun, tema: viewTheme, infinito: viewEndless, ripasso: viewReview, caso: viewRandom,
   partita: viewGame, sfida: viewChallenge, tappeto: viewCarpet, lessico: viewGlossary, maestro: viewMaestro,
   progressi: viewProgress, impostazioni: viewSettings, benvenuto: viewWelcome,
 };
@@ -90,7 +90,7 @@ function render() {
   document.body.classList.toggle('welcome-mode', id === 'benvenuto');
   const view = h('div', { class: 'view view-' + (VIEWS[id] ? id : 'oggi') });
   main.append(view);
-  setNav(id === 'lezione' || id === 'esercizi' ? 'percorso' : ['livello', 'catalogo', 'tema', 'infinito', 'ripasso'].includes(id) ? 'problemi' : id);
+  setNav(id === 'lezione' || id === 'esercizi' ? 'percorso' : ['livello', 'catalogo', 'tema', 'infinito', 'ripasso', 'caso'].includes(id) ? 'problemi' : id);
   fn(view, ...args.map(decodeURIComponent));
   if (id !== 'benvenuto') decorate(view, id === 'tappeto' ? 2 : 3);
   window.scrollTo(0, 0);
@@ -160,6 +160,7 @@ function viewToday(view) {
     h('a', { class: 'quick-card', href: '#partita' }, h('span', { class: 'qc-t' }, 'Partita'), h('span', { class: 'dim' }, cfgLabel(Store.data.game))),
     h('a', { class: 'quick-card', href: '#maestro' }, h('span', { class: 'qc-t' }, 'Il maestro'), h('span', { class: 'dim' }, 'domande e spiegazioni')),
     h('a', { class: 'quick-card', href: '#problemi' }, h('span', { class: 'qc-t' }, 'Problemi'), h('span', { class: 'dim' }, `${CATALOG.length} problemi, livello ${catCurrentLevel() + 1}`))));
+  if (Sync.on && !Sync.logged) view.append(h('a', { class: 'banner', href: '#impostazioni' }, h('b', {}, 'Entra con il tuo account'), h('span', { class: 'dim' }, ' per avere gli stessi progressi su computer e telefono e vedere le perle dell\'altro.')));
   view.append(head, playHost, strip);
   if (d.idx >= d.items.length) return dailyDone(playHost);
   runSeries(playHost, d.items, {
@@ -185,6 +186,7 @@ function dailyDone(host) {
         host.innerHTML = '';
         runSeries(host, nextCatalogItems(6), { title: 'Ancora', cls: 'today', onFinish: () => dailyDone(host) });
       }, 'primary'),
+      btn('Problemi a caso', () => { host.innerHTML = ''; runSeries(host, randomItems(6), { title: 'A caso', cls: 'today', onFinish: () => dailyDone(host) }); }, ''),
       Store.dueReviews().length ? btn(`Ripasso (${Store.dueReviews().length})`, () => go('ripasso'), '') : null,
       btn('Partita', () => go('partita'), '')));
   host.append(card);
@@ -238,6 +240,7 @@ function viewProblems(view) {
   view.append(pageHead(`${CATALOG.length} problemi`, 'Problemi', `${catLevels()} livelli, dal più facile. Ogni soluzione è verificata da un risolutore e spiegata. Un livello si apre risolvendone ${LEVEL_UNLOCK} del precedente.`));
   view.append(h('div', { class: 'tiles' },
     h('a', { class: 'tile card accent', href: '#catalogo/' + cur }, h('span', { class: 'qc-t' }, `Continua: livello ${cur + 1}`), h('span', { class: 'dim' }, `${cst.solved} di ${cst.total} risolti`)),
+    h('a', { class: 'tile card', href: '#caso' }, h('span', { class: 'qc-t' }, 'A caso'), h('span', { class: 'dim' }, 'dieci problemi pescati dal catalogo, temi misti')),
     h('a', { class: 'tile card', href: '#infinito' }, h('span', { class: 'qc-t' }, 'Allenamento infinito'), h('span', { class: 'dim' }, 'problemi nuovi generati al momento, al tuo livello')),
     h('a', { class: 'tile card', href: '#ripasso' }, h('span', { class: 'qc-t' }, 'Ripasso'), h('span', { class: 'dim' }, due ? `${plural(due, 'problema', 'problemi')} da rifare oggi` : 'niente da ripassare oggi'))));
   const grid = h('div', { class: 'levels' });
@@ -301,6 +304,13 @@ function viewEndless(view) {
   }
   runSeries(view, items, { title: 'Allenamento infinito', again: () => render() });
 }
+// problemi a caso dal catalogo, fino a tre livelli sopra il tuo; prima quelli non ancora risolti
+function randomItems(n) {
+  const maxLv = Math.min(catLevels() - 1, catCurrentLevel() + 3), pool = [];
+  for (let lv = 0; lv <= maxLv; lv++) pool.push(...catIdx(lv));
+  return catRefs([...shuffle(pool.filter(i => !pbOf(i).s)), ...shuffle(pool.filter(i => pbOf(i).s))].slice(0, n));
+}
+function viewRandom(view) { runSeries(view, randomItems(10), { title: 'A caso', again: () => render() }); }
 function viewReview(view) {
   const due = Store.dueReviews();
   if (!due.length) {
@@ -321,11 +331,12 @@ function viewChallenge(view) {
   const d = Store.data, riv = d.rival, ws = weekStart();
   const mine = Store.perleWeek(d.days, ws), theirs = riv ? Store.perleWeek(riv.d, ws) : 0;
   const me = d.name || 'Tu', her = riv ? riv.n : '[Lei]';
-  view.append(pageHead(weekLabel(ws), 'La sfida', 'Chi si allena di più nella settimana, da lunedì a domenica, riceve pietre di vantaggio nella partita dal vivo del sabato.'));
+  view.append(pageHead(weekLabel(ws), 'La sfida', 'Chi si allena di più in settimana, da lunedì a domenica, sabato al goban riceve pietre di vantaggio.'));
+  const noRival = Sync.logged ? 'non è ancora entrata' : Sync.on ? 'entra per vederle' : 'manca il suo codice';
   const score = h('section', { class: 'score card' },
     h('div', { class: 'sc-side' }, h('span', { class: 'dim' }, me), h('span', { class: 'huge c-me' }, String(mine)), h('span', { class: 'dim small' }, `perle · serie ${plural(Store.streak(), 'giorno', 'giorni')}`)),
     h('span', { class: 'sc-mid' }, 'contro'),
-    h('div', { class: 'sc-side r' }, h('span', { class: 'dim' }, her), h('span', { class: 'huge c-rival' }, riv ? String(theirs) : '·'), h('span', { class: 'dim small' }, riv ? `perle · serie ${plural(riv.s || 0, 'giorno', 'giorni')}` : 'manca il suo codice')));
+    h('div', { class: 'sc-side r' }, h('span', { class: 'dim' }, her), h('span', { class: 'huge c-rival' }, riv ? String(theirs) : '·'), h('span', { class: 'dim small' }, riv ? `perle · serie ${plural(riv.s || 0, 'giorno', 'giorni')}` : noRival)));
   view.append(score);
   if (riv) {
     const gs = goStones(mine, theirs);
@@ -336,28 +347,46 @@ function viewChallenge(view) {
       sat.append(h('p', { class: 'title' }, `${who} gioca col nero e ${plural(gs.n, 'pietra', 'pietre')} di vantaggio.`),
         h('p', { class: 'dim' }, `Una pietra ogni ${CONFIG.perlePerPietra} perle di scarto, fino a ${CONFIG.maxPietre}. A ${other} ne ${Math.abs(gs.diff) - CONFIG.perlePerPietra * gs.n + 1 === 1 ? 'basta una' : 'bastano ' + (Math.abs(gs.diff) - CONFIG.perlePerPietra * gs.n + 1)} per toglierne una.`));
     }
-    sat.append(h('p', { class: 'dim small' }, `Perle di ${her} aggiornate ${riv.at ? 'il ' + shortDate(dayKey(new Date(riv.at))) + ' alle ' + new Date(riv.at).toTimeString().slice(0, 5) : ''}. Per aggiornarle, fatti mandare il suo codice.`));
+    const at = riv.at ? `${shortDate(dayKey(new Date(riv.at)))} alle ${new Date(riv.at).toTimeString().slice(0, 5)}` : '';
+    sat.append(h('p', { class: 'dim small' }, riv.online ? `Perle di ${her} aggiornate da sole (ultima volta: ${at}).` : `Perle di ${her} aggiornate il ${at}, dal suo codice.`));
     view.append(sat);
   }
-  // codice
-  const code = Store.makeCode();
-  const ta = h('textarea', { class: 'code', readonly: true, rows: 3, 'aria-label': 'Il tuo codice' }, code);
-  const paste = h('textarea', { class: 'code', rows: 3, placeholder: 'Incolla qui il codice che comincia con CP28-', 'aria-label': 'Codice dell\'altro telefono' });
-  const msg = h('p', { class: 'feedback', 'aria-live': 'polite' });
-  const share = async () => {
-    const text = `Le mie perle di Capodanno 28: ${code}`;
-    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e.name === 'AbortError') return; }
-    try { await navigator.clipboard.writeText(code); msg.className = 'feedback good'; msg.textContent = 'Codice copiato: incollalo in un messaggio.'; } catch (e) { ta.select(); msg.textContent = 'Seleziona il codice e copialo.'; }
-  };
-  view.append(h('section', { class: 'card codes' },
-    h('h2', {}, 'Scambiatevi le perle'),
-    h('p', { class: 'dim' }, 'Ogni telefono tiene i suoi progressi. Per la sfida mandate all\'altro il vostro codice (per messaggio, va bene WhatsApp) e incollate il suo qui sotto. Il codice porta perle, serie, sigilli e partite dal vivo.'),
-    h('div', { class: 'two' },
-      h('div', {}, h('p', { class: 'label' }, 'Il tuo codice'), ta, h('div', { class: 'actions' }, btn('Manda le tue perle', share, 'primary'))),
-      h('div', {}, h('p', { class: 'label' }, `Il codice di ${riv ? riv.n : 'lei'}`), paste, h('div', { class: 'actions' }, btn('Aggiorna la sfida', () => {
-        try { const p = Store.importCode(paste.value); msg.className = 'feedback good'; msg.textContent = `Fatto: ${p.n}, ${p.t} perle in tutto.`; setTimeout(render, 900); }
-        catch (e) { msg.className = 'feedback bad'; msg.textContent = e.message || 'Codice non valido.'; }
-      }, '')))), msg));
+  // come funzionano le perle
+  const first = !d.seen.perle; d.seen.perle = true; Store.save(true);
+  view.append(h('details', { class: 'card howto', open: first || null },
+    h('summary', {}, 'Come funzionano le perle'),
+    h('ul', {},
+      h('li', {}, h('b', {}, 'Una perla'), ' per ogni problema risolto. ', h('b', {}, 'Due'), ' se lo risolvi al primo colpo, senza suggerimenti. Con la soluzione mostrata non si guadagna niente.'),
+      h('li', {}, h('b', {}, `${CONFIG.perleFilo} perle in un giorno`), ' chiudono il filo di oggi. I giorni di fila con il filo chiuso sono la ', h('b', {}, 'serie'), '.'),
+      h('li', {}, h('b', {}, 'La sfida'), ' confronta le perle della settimana, da lunedì a domenica. Il sabato, al goban vero, chi ne ha di più gioca col nero e mette ', h('b', {}, `una pietra di vantaggio ogni ${CONFIG.perlePerPietra} perle di scarto`), `, fino a ${CONFIG.maxPietre}.`),
+      h('li', {}, 'Le perle di ', h('b', {}, 'tutti e due insieme'), ' sbloccano i 100 motivi del vostro tappeto.'),
+      h('li', {}, h('b', {}, 'I sigilli'), ` arrivano con ${CONFIG.sigillo} problemi risolti della stessa tattica.`))));
+  if (Sync.on && !Sync.logged) view.append(accountCard());
+  // senza account: il codice, spiegato passo per passo
+  if (!Sync.logged) {
+    const code = Store.makeCode();
+    const ta = h('textarea', { class: 'code', readonly: true, rows: 3, 'aria-label': 'Il tuo codice' }, code);
+    const paste = h('textarea', { class: 'code', rows: 3, placeholder: 'Incolla qui il codice ricevuto (comincia con CP28-)', 'aria-label': 'Codice ricevuto' });
+    const msg = h('p', { class: 'feedback', 'aria-live': 'polite' });
+    const share = async () => {
+      const text = `Le mie perle di Capodanno 28. Incolla questo codice nella Sfida: ${code}`;
+      try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+      try { await navigator.clipboard.writeText(text); msg.className = 'feedback good'; msg.textContent = 'Copiato: incollalo in un messaggio per lei.'; } catch (e) { ta.select(); msg.textContent = 'Seleziona il codice e copialo.'; }
+    };
+    view.append(h('details', { class: 'card codes', open: (!riv && !Sync.on) || null },
+      h('summary', {}, Sync.on ? 'Senza account: le perle a mano' : 'Come vedere le perle dell\'altro'),
+      h('p', { class: 'dim' }, 'Ogni telefono conta le sue perle. Per confrontarle vi mandate un codice: è solo un riassunto delle perle della settimana, delle serie, dei sigilli e delle partite dal vivo. Si può rimandare quando si vuole.'),
+      h('ol', { class: 'steps-list' },
+        h('li', {}, 'Tocca ', h('b', {}, 'Manda le tue perle'), ': si apre un messaggio con il codice, mandalo a lei.'),
+        h('li', {}, 'Lei fa lo stesso dal suo telefono e ti manda il suo.'),
+        h('li', {}, 'Copia il suo codice, incollalo nel riquadro a destra e tocca ', h('b', {}, 'Aggiorna la sfida'), '.')),
+      h('div', { class: 'two' },
+        h('div', {}, h('p', { class: 'label' }, 'Il tuo codice'), ta, h('div', { class: 'actions' }, btn('Manda le tue perle', share, 'primary'))),
+        h('div', {}, h('p', { class: 'label' }, `Il codice di ${riv ? riv.n : 'lei'}`), paste, h('div', { class: 'actions' }, btn('Aggiorna la sfida', () => {
+          try { const p = Store.importCode(paste.value); msg.className = 'feedback good'; msg.textContent = `Fatto: ${p.n}, ${p.t} perle in tutto.`; setTimeout(render, 900); }
+          catch (e) { msg.className = 'feedback bad'; msg.textContent = e.message || 'Codice non valido.'; }
+        }, '')))), msg));
+  }
   // sigilli
   view.append(h('h2', { class: 'sec-h' }, 'I sigilli'), sealGrid());
   // settimane passate
@@ -417,7 +446,8 @@ function liveSection(mine, theirs) {
 function viewCarpet(view) {
   const tot = Store.perleCoppia(), un = unlockedOrn(), nx = nextOrn();
   view.append(pageHead('Tappeto Nichols', 'Il vostro tappeto', `Le perle di tutti e due sbloccano i motivi: ${un.length} su 100. ` + (nx ? `Prossimo a ${nx.soglia} perle: ${nx.nome.toLowerCase()} (ne mancano ${nx.soglia - tot}).` : 'Il tappeto è completo.')));
-  if (!Store.data.rival) view.append(h('p', { class: 'dim small' }, 'Contano anche le perle dell\'altro telefono, quando incollate il suo codice nella Sfida.'));
+  if (nx) view.append(h('p', { class: 'card pace' }, paceText(tot, nx)));
+  if (!Store.data.rival) view.append(h('p', { class: 'dim small' }, Sync.on ? 'Contano anche le perle dell\'altro, quando siete entrati tutti e due con l\'account.' : 'Contano anche le perle dell\'altro telefono, quando incollate il suo codice nella Sfida.'));
   const grid = h('div', { class: 'carpet' });
   for (const o of ORN) {
     const open = o.soglia <= tot, next = nx && o.id === nx.id;
@@ -427,6 +457,16 @@ function viewCarpet(view) {
     grid.append(tile);
   }
   view.append(h('div', { class: 'carpet-frame' }, grid));
+}
+// quanto manca, al vostro ritmo degli ultimi sette giorni
+function paceText(tot, nx) {
+  let week = 0; for (let i = 0; i < 7; i++) { const k = addDays(today(), -i); week += Store.perleOn(k) + (Store.data.rival ? (Store.data.rival.d[k] || 0) : 0); }
+  const measured = week >= 7, rate = measured ? week / 7 : CONFIG.perleFilo * 2;
+  const last = ORN[ORN.length - 1].soglia;
+  const days = n => Math.max(1, Math.ceil(n / rate));
+  const span = n => { const dd = days(n); return dd <= 1 ? 'domani' : dd < 14 ? `tra ${dd} giorni` : dd < 60 ? `tra circa ${Math.round(dd / 7)} settimane` : `tra circa ${Math.round(dd / 30)} mesi`; };
+  return (measured ? `Al vostro ritmo (${Math.round(rate)} perle al giorno in due)` : `Con un filo al giorno a testa (${rate} perle al giorno in due)`) +
+    ` il prossimo motivo arriva ${span(nx.soglia - tot)}, il tappeto intero ${span(last - tot)}.`;
 }
 function showMotif(o) {
   const dlg = h('div', { class: 'menu-sheet', role: 'dialog', 'aria-label': o.nome });
@@ -552,6 +592,33 @@ function viewProgress(view) {
   view.append(d.history.length ? h('div', { class: 'readout card' }, ...d.history.slice(0, 20).map(e => h('div', { class: 'ro-row' }, h('span', { class: e.ok ? 'ok' : 'ko' }, e.ok ? '◆' : '✕'), h('span', {}, e.k === 'g' ? 'Partita: ' + e.label : 'Problema: ' + ((UNITS.find(U => U.id === e.unit) || {}).title || '')), h('span', { class: 'dim' }, shortDate(e.d))))) : h('p', { class: 'dim' }, 'Registro vuoto. Si comincia da Oggi.'));
 }
 
+// ---------- Account ----------
+function loginForm(onDone) {
+  const em = h('input', { type: 'email', autocomplete: 'username', placeholder: 'la tua email', 'aria-label': 'Email', required: true });
+  const pw = h('input', { type: 'password', autocomplete: 'current-password', placeholder: 'password', 'aria-label': 'Password', required: true });
+  const msg = h('p', { class: 'feedback', 'aria-live': 'polite' });
+  const sub = h('button', { class: 'btn primary', type: 'submit' }, 'Entra');
+  return h('form', { class: 'login', onsubmit: async e => {
+    e.preventDefault(); sub.disabled = true; msg.className = 'feedback info'; msg.textContent = 'Entro…';
+    try { await Sync.login(em.value, pw.value); msg.textContent = ''; toast('Sei dentro: i progressi ora sono condivisi.', 'gold'); applyTheme(); (onDone || render)(); }
+    catch (err) { msg.className = 'feedback bad'; msg.textContent = err.message; sub.disabled = false; }
+  } }, h('div', { class: 'login-row' }, em, pw, sub), msg);
+}
+function accountCard() {
+  if (!Sync.on) return null;
+  const box = h('section', { class: 'card account' });
+  if (Sync.logged) {
+    const t = Sync.lastSync ? new Date(Sync.lastSync).toTimeString().slice(0, 5) : null;
+    box.append(h('h2', {}, 'Il tuo account'),
+      h('p', {}, `Sei dentro come ${Sync.email}. Resti collegato su questo dispositivo finché non esci.`),
+      h('p', { class: 'dim small' }, Sync.status === 'offline' ? 'Sei offline: i progressi restano qui e partono appena torna la rete.' : t ? `Progressi salvati alle ${t}.` : 'Progressi salvati.'),
+      h('div', { class: 'actions' }, btn('Aggiorna adesso', async () => { await Sync.pull(true); render(); }, ''), btn('Esci', async () => { if (confirm('Uscire dall\'account su questo dispositivo? I progressi restano salvati.')) { await Sync.logout(); render(); } }, 'ghost')));
+  } else {
+    box.append(h('h2', {}, 'Entra'), h('p', { class: 'dim' }, 'Con l\'account i progressi passano dal computer al telefono, e le perle di tutti e due arrivano da sole nella sfida. Si entra una volta sola: poi resti dentro.'), loginForm());
+  }
+  return box;
+}
+
 // ---------- Impostazioni ----------
 const PALETTES = [['blu', 'Blu di Tientsin'], ['melanzana', 'Melanzana'], ['giada', 'Giada']];
 const COLORI = [['oro', 'Oro'], ['rosa', 'Rosa peonia'], ['giada', 'Giada']];
@@ -565,6 +632,7 @@ function applyTheme() {
 function viewSettings(view) {
   const d = Store.data;
   view.append(pageHead('Impostazioni', 'Il tuo tappeto', null));
+  const acc = accountCard(); if (acc) view.append(acc);
   const name = h('input', { type: 'text', value: d.name, placeholder: 'Il tuo nome', autocomplete: 'given-name', maxlength: 24 });
   name.addEventListener('change', () => { d.name = name.value.trim(); Store.save(); toast('Nome salvato.'); });
   const pal = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Palette' }, ...PALETTES.map(([id, label]) => h('button', { type: 'button', role: 'radio', 'aria-checked': String(d.palette === id), class: 'swatch sw-' + id + (d.palette === id ? ' on' : ''), onclick: () => { d.palette = id; Store.save(); applyTheme(); render(); } }, h('span', { class: 'sw-chip' }, h('i'), h('i'), h('i')), label)));
@@ -622,59 +690,65 @@ function viewWelcome(view) {
         h('p', { class: 'dim' }, 'Nella scatola c\'è un goban vero. Qui c\'è dove imparare a usarlo: cinque, dieci minuti al giorno.'),
         h('label', { class: 'field' }, h('span', {}, 'Come ti chiami'), name),
         h('div', { class: 'field' }, h('span', {}, 'Scegli il tuo tappeto'), pals),
-        h('div', { class: 'actions' }, btn('Cominciamo', start, 'primary big'))))));
+        Sync.on && !Sync.logged ? h('div', { class: 'field' }, h('span', {}, 'Entra con il tuo account (email e password che ti ha dato [nome])'), loginForm(start)) : null,
+        h('div', { class: 'actions' }, btn(Sync.on && !Sync.logged ? 'Comincia senza account' : 'Cominciamo', start, Sync.on && !Sync.logged ? 'ghost' : 'primary big'))))));
 }
 
-// ---------- Modalità ufficio ----------
+// ---------- Modalità ufficio: il tappeto come salvaschermo ----------
 const Office = {
-  on: false, el: null, prevTitle: null,
+  on: false, el: null, timers: [], prevTitle: null,
   build() {
-    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    const rows = [
-      ['Monitoraggio attività Q4', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', ''],
-      ['Attività', 'Area', 'Responsabile', 'Stato', 'Inizio', 'Scadenza', 'Avanz.', 'Note'],
-      ['Aggiornamento calendario editoriale', 'Contenuti', 'M.R.', 'In corso', '01/10/2026', '24/10/2026', '60%', 'Bozza condivisa'],
-      ['Revisione pagine prodotto', 'Web', 'L.B.', 'In revisione', '29/09/2026', '17/10/2026', '85%', 'Attesa commenti'],
-      ['Report trimestrale KPI', 'Analisi', 'D.C.', 'In corso', '05/10/2026', '31/10/2026', '40%', 'Dati settembre ok'],
-      ['Newsletter interna ottobre', 'Interna', 'S.F.', 'Completato', '22/09/2026', '07/10/2026', '100%', ''],
-      ['Pianificazione eventi novembre', 'Eventi', 'A.G.', 'Da avviare', '15/10/2026', '14/11/2026', '0%', 'Budget da confermare'],
-      ['Aggiornamento FAQ', 'Web', 'L.B.', 'In corso', '06/10/2026', '20/10/2026', '30%', ''],
-      ['Analisi sondaggio dipendenti', 'Interna', 'M.R.', 'In corso', '01/10/2026', '28/10/2026', '55%', 'Campione 412'],
-      ['Media kit 2027', 'Contenuti', 'S.F.', 'Da avviare', '20/10/2026', '30/11/2026', '0%', ''],
-      ['Traduzioni sito EN/DE', 'Web', 'A.G.', 'In revisione', '25/09/2026', '16/10/2026', '90%', 'Fornitore esterno'],
-      ['Archivio fotografico', 'Contenuti', 'D.C.', 'In corso', '02/10/2026', '06/11/2026', '25%', 'Tag in corso'],
-      ['Procedura richieste interne', 'Interna', 'M.R.', 'Completato', '15/09/2026', '03/10/2026', '100%', 'Pubblicata'],
-      ['Calendario social Q1', 'Contenuti', 'L.B.', 'Da avviare', '01/11/2026', '15/12/2026', '0%', ''],
-      ['Verifica accessibilità sito', 'Web', 'A.G.', 'In corso', '07/10/2026', '04/11/2026', '20%', 'Checklist WCAG'],
-      ['Presentazione di fine anno', 'Eventi', 'S.F.', 'Da avviare', '03/11/2026', '12/12/2026', '0%', ''],
-      ['Dashboard mensile', 'Analisi', 'D.C.', 'In corso', '01/10/2026', '30/10/2026', '70%', ''],
-      ['Aggiornamento organigramma', 'Interna', 'M.R.', 'In revisione', '28/09/2026', '14/10/2026', '80%', 'Manca reparto 3'],
-      ['Glossario termini tecnici', 'Contenuti', 'L.B.', 'In corso', '08/10/2026', '07/11/2026', '15%', ''],
-      ['', '', '', '', '', 'Media', '43%', ''],
-    ];
-    const head = h('tr', {}, h('th', {}), ...cols.map(c => h('th', {}, c)));
-    const body = rows.map((r, i) => h('tr', { class: i === 0 ? 'os-title' : i === 2 ? 'os-hdr' : '' }, h('th', {}, String(i + 1)), ...r.map((v, j) => h('td', { class: j >= 4 && j <= 6 ? 'os-num' : '' }, v))));
-    for (let i = rows.length + 1; i <= 40; i++) body.push(h('tr', {}, h('th', {}, String(i)), ...cols.map(() => h('td', {}, ''))));
-    this.el = h('div', { class: 'office-sheet', hidden: true, 'aria-label': 'Foglio di lavoro' },
-      h('div', { class: 'os-menu' }, ...['File', 'Modifica', 'Visualizza', 'Inserisci', 'Formato', 'Dati', 'Strumenti'].map(t => h('span', {}, t))),
-      h('div', { class: 'os-bar' }, h('span', { class: 'os-ref' }, 'G24'), h('span', { class: 'os-fx' }, 'fx'), h('span', {}, '=MEDIA(G4:G23)')),
-      h('div', { class: 'os-grid' }, h('table', {}, h('thead', {}, head), h('tbody', {}, ...body))),
-      h('div', { class: 'os-tabs' }, h('span', { class: 'os-tab on' }, 'Riepilogo'), h('span', { class: 'os-tab' }, 'Dettaglio'), h('button', { type: 'button', class: 'os-tab', onclick: () => this.hide() }, 'Note')));
+    const pool = shuffle(unlockedOrn().slice());
+    const pick = i => pool[i % pool.length];
+    const img = (o, cls) => h('img', { class: cls, src: o.file, alt: '', onerror: function () { this.remove(); } });
+    const center = ORN.find(o => o.id === 'drago-6' && o.soglia <= Store.perleCoppia()) || ORN.find(o => o.id === 'peonia-2' && o.soglia <= Store.perleCoppia()) || pick(0);
+    const field = h('div', { class: 'rug-field' },
+      h('div', { class: 'medallion' }, img(center, 'med-img')),
+      img(pick(1), 'rc rc-tl'), img(pick(2), 'rc rc-tr'), img(pick(3), 'rc rc-bl'), img(pick(4), 'rc rc-br'));
+    this.field = field; this.pool = pool; this.k = 5;
+    this.clock = h('div', { class: 'saver-clock', 'aria-hidden': 'true' });
+    this.el = h('div', { class: 'saver', role: 'dialog', 'aria-label': 'Salvaschermo. Tocca o premi Esc per tornare.', onclick: () => this.hide() },
+      h('div', { class: 'fringe' }),
+      h('div', { class: 'rug' }, h('div', { class: 'rug-border' }, field)),
+      h('div', { class: 'fringe' }), this.clock);
     document.body.append(this.el);
   },
-  show() {
-    if (!this.el) this.build();
-    closeTerm(); $$('.menu-sheet').forEach(x => x.remove());
-    this.on = true; this.el.hidden = false; document.body.classList.add('office');
-    this.prevTitle = document.title; document.title = 'Monitoraggio attività Q4';
+  // un motivo nuovo ogni pochi secondi, in un punto a caso del campo; i più vecchi svaniscono
+  drift() {
+    if (!this.on || !this.pool.length) return;
+    const o = this.pool[this.k++ % this.pool.length];
+    let x, y; do { x = 6 + Math.random() * 70; y = 6 + Math.random() * 66; } while (Math.hypot(x + 8 - 50, y + 8 - 50) < 34);   // fuori dal medaglione
+    const el = h('img', { class: 'drift', src: o.file, alt: '', style: { left: x + '%', top: y + '%', width: (12 + Math.random() * 8) + '%', transform: Math.random() < .5 ? 'scaleX(-1)' : 'none' } });
+    this.field.append(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+    const all = this.field.querySelectorAll('.drift');
+    if (all.length > 3) { const old = all[0]; old.classList.remove('in'); setTimeout(() => old.remove(), 2500); }
   },
-  hide() { if (!this.el) return; this.on = false; this.el.hidden = true; document.body.classList.remove('office'); document.title = this.prevTitle || 'Capodanno 28'; },
+  tick() { const d = new Date(); this.clock.textContent = d.toTimeString().slice(0, 5); },
+  show() {
+    closeTerm(); $$('.menu-sheet').forEach(x => x.remove());
+    if (this.el) this.el.remove();
+    this.on = true; this.build(); document.body.classList.add('office');
+    this.tick(); this.drift();
+    this.timers = [setInterval(() => this.tick(), 20000)];
+    if (!reduceMotion) this.timers.push(setInterval(() => this.drift(), 6000));
+  },
+  hide() {
+    if (!this.el) return;
+    this.on = false; this.timers.forEach(clearInterval); this.timers = [];
+    this.el.remove(); this.el = null; document.body.classList.remove('office');
+  },
   toggle() { this.on ? this.hide() : this.show(); },
 };
 
 // ---------- Avvio ----------
 function boot() {
-  Store.init(); applyTheme(); buildChrome();
+  Store.init(); Sync.load(); applyTheme(); buildChrome();
+  // con l'account: si scaricano i progressi all'avvio e ogni volta che l'app torna in primo piano
+  if (Sync.on && Sync.logged) {
+    Sync.pull().then(() => { const id = (location.hash.slice(1) || 'oggi').split('/')[0]; if (!['oggi', 'partita', 'lezione', 'esercizi', 'catalogo', 'tema', 'infinito', 'ripasso', 'caso'].includes(id)) render(); else refreshChrome(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Sync.pull(); });
+  }
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if ($('#termbox') && !Office.on) { closeTerm(); return; }

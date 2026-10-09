@@ -7,7 +7,8 @@ const DEFAULT_DATA = () => ({
   rating: 0, solved: 0, attempts: 0,
   units: {}, review: {}, history: [], skipLock: {}, pb: {}, quiz: null,
   games: { played: 0, won: 0, goWon: 0 },
-  days: {},        // giorno -> perle
+  days: {},        // giorno -> perle (somma dei dispositivi)
+  dev: {},         // dispositivo -> giorno -> perle: computer e telefono dello stesso account si sommano
   seals: {},       // sigillo -> problemi risolti
   daily: null,     // esercizio di oggi
   live: [],        // partite sul goban vero
@@ -44,11 +45,19 @@ const sealNeed = S => S.need || CONFIG.sigillo;
 
 const Store = {
   data: DEFAULT_DATA(),
+  device: null,
   init() {
     try { const raw = localStorage.getItem(STORE_KEY); if (raw) this.data = Object.assign(DEFAULT_DATA(), JSON.parse(raw)); } catch (e) { }
     this.data.game = Object.assign(DEFAULT_DATA().game, this.data.game || {});
+    try { this.device = localStorage.getItem(STORE_KEY + '-dispositivo'); if (!this.device) { this.device = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); localStorage.setItem(STORE_KEY + '-dispositivo', this.device); } } catch (e) { this.device = 'd0'; }
+    // perle di prima di questa versione: le attribuisco a questo dispositivo
+    if (!this.data.dev || !Object.keys(this.data.dev).length) this.data.dev = Object.keys(this.data.days || {}).length ? { [this.device]: Object.assign({}, this.data.days) } : {};
   },
-  save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) { } },
+  save(fromSync) {
+    if (!fromSync) this.data.updated = Date.now();
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) { }
+    if (!fromSync && typeof Sync !== 'undefined') Sync.schedule();
+  },
   unit(id) { if (!this.data.units[id]) this.data.units[id] = { lesson: false, ok: 0, tried: 0 }; return this.data.units[id]; },
 
   // --- perle ---
@@ -74,7 +83,9 @@ const Store = {
   addPerle(n, sealId) {
     const d = this.data, k = today();
     const before = { day: this.perleOn(k), coppia: this.perleCoppia(), seal: sealId ? d.seals[sealId] || 0 : 0 };
-    d.days[k] = (d.days[k] || 0) + n;
+    const mine = d.dev[this.device] || (d.dev[this.device] = {});
+    mine[k] = (mine[k] || 0) + n;
+    d.days[k] = Object.values(d.dev).reduce((s, x) => s + (x[k] || 0), 0);
     if (sealId) d.seals[sealId] = (d.seals[sealId] || 0) + 1;
     this.save();
     Rewards.after(before, n, sealId);
@@ -94,7 +105,7 @@ const Store = {
     const r = d.review[P.ref];
     if (!ok && P.ref) d.review[P.ref] = { box: 0, due: today(), unit: unitId || P.unit };
     else if (r) { r.box++; if (r.box >= 3) delete d.review[P.ref]; else r.due = addDays(today(), [1, 3, 7][r.box]); }
-    d.history.unshift({ d: today(), k: 'p', ref: P.ref, ok, dr: delta, unit: unitId || P.unit });
+    d.history.unshift({ d: today(), t: Date.now(), k: 'p', ref: P.ref, ok, dr: delta, unit: unitId || P.unit });
     d.history = d.history.slice(0, 200);
     this.save();
     return delta;
@@ -111,7 +122,7 @@ const Store = {
       const before = d.seals.territorio || 0; d.seals.territorio = before + 1;
       Rewards.sealCheck('territorio', before);
     }
-    d.history.unshift({ d: today(), k: 'g', label, ok: win, dr: delta });
+    d.history.unshift({ d: today(), t: Date.now(), k: 'g', label, ok: win, dr: delta });
     d.history = d.history.slice(0, 200);
     this.save();
     return delta;

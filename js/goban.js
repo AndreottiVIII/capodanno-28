@@ -80,6 +80,7 @@ class Goban {
       else if (t === 'sq') mk.append(s('rect', { x: cx - 17, y: cy - 17, width: 34, height: 34, fill: 'none', stroke: c, 'stroke-width': 6 }));
       else if (t === 'circle') mk.append(s('circle', { cx, cy, r: 21, fill: 'none', stroke: c, 'stroke-width': 6 }));
       else if (t === 'x') { const d = 18; mk.append(s('path', { d: `M${cx - d} ${cy - d}L${cx + d} ${cy + d}M${cx + d} ${cy - d}L${cx - d} ${cy + d}`, stroke: empty ? '#B8361F' : c, 'stroke-width': 8, 'stroke-linecap': 'round' })); }
+      else if (t === 'best') mk.append(s('circle', { cx, cy, r: G * .45, fill: this.ghostColor === WHITE ? '#FBF6EA' : '#16151A', 'fill-opacity': .55, stroke: '#3FA06E', 'stroke-width': 8 }));
       else if (t === 'good') mk.append(s('path', { d: `M${cx} ${cy - 26}L${cx + 26} ${cy}L${cx} ${cy + 26}L${cx - 26} ${cy}Z`, fill: '#2F7A55', stroke: '#F4EBD6', 'stroke-width': 3, class: 'breath' }));
     }
     svg.append(mk);
@@ -112,6 +113,7 @@ class Goban {
     return b.pt(x, y);
   }
   showGhost(p, strong) {
+    if (this.ghostColor === 'none') return;
     const [cx, cy] = this.px(p); this.ghost.setAttribute('cx', cx); this.ghost.setAttribute('cy', cy);
     if (this.ghostColor === 'mark') { this.ghost.setAttribute('fill', 'none'); this.ghost.setAttribute('stroke', '#B8361F'); this.ghost.setAttribute('stroke-width', 5); this.ghost.setAttribute('stroke-dasharray', '9 8'); this.ghost.setAttribute('opacity', .85); }
     else { this.ghost.setAttribute('fill', this.ghostColor === BLACK ? '#16151A' : '#FBF6EA'); this.ghost.setAttribute('stroke', strong ? '#B8361F' : 'none'); this.ghost.setAttribute('stroke-width', 6); this.ghost.removeAttribute('stroke-dasharray'); this.ghost.setAttribute('opacity', strong ? .7 : .45); }
@@ -127,7 +129,7 @@ class Goban {
     if (!this.clickable || !this.onPlay) return;
     const p = this.pointFrom(e); if (p === null) return;
     // sul telefono, con intersezioni piccole (13×13, 19×19): primo tocco mostra, secondo conferma
-    if (e.pointerType !== 'mouse' && this.cellPx() < 30 && this.opts.board.cells[p] === EMPTY) {
+    if (this.ghostColor !== 'none' && e.pointerType !== 'mouse' && this.cellPx() < 30 && this.opts.board.cells[p] === EMPTY) {
       if (this.pending !== p) { this.pending = p; this.showGhost(p, true); if (this.onPending) this.onPending(p); return; }
     }
     this.pending = null; this.ghost.setAttribute('opacity', 0);

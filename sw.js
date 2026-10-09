@@ -1,11 +1,11 @@
 // Service worker: il sito funziona anche senza internet.
 // A ogni pubblicazione cambia VERSION, così i telefoni scaricano i file nuovi.
-const VERSION = 'cp28-2026-10-09-2';
+const VERSION = 'cp28-2026-10-09-3';
 importScripts('js/ornamenti.js');
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/config.js', 'js/util.js', 'js/engine.js', 'js/catalog.js', 'js/content.js', 'js/ornamenti.js',
-  'js/store.js', 'js/goban.js', 'js/player.js', 'js/game.js', 'js/views.js',
+  'js/store.js', 'js/sync.js', 'js/goban.js', 'js/player.js', 'js/game.js', 'js/views.js',
   'img/greca.svg', 'img/intaglio.svg', 'img/icon-192.png', 'img/icon-512.png', 'img/apple-touch-icon.png',
 ];
 self.addEventListener('install', e => {

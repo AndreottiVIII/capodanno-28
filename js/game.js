@@ -143,7 +143,13 @@ function startGame(host, cfg) {
   const goban = L.goban;
   L.kicker.textContent = mode === 'atari' ? 'Atari Go: vince chi cattura per primo' : `Go ${n}×${n}: si conta il territorio`;
   const status = h('p', { class: 'status' }), alertBox = h('div', { class: 'alertbox', 'aria-live': 'polite' }), quizBox = h('div', { class: 'quizbox' }), evalBox = h('div', { class: 'evalbox' });
-  L.body.append(status, alertBox, quizBox, evalBox);
+  const legend = h('details', { class: 'legend' }, h('summary', {}, 'Cosa vogliono dire i segni sul goban'), h('ul', {},
+    h('li', {}, h('span', { class: 'lg lg-last' }), 'cerchio sulla pietra: l\'ultima mossa giocata'),
+    h('li', {}, h('span', { class: 'lg lg-best' }), 'pietra trasparente con il bordo verde: dove avrebbe giocato il computer al posto tuo'),
+    h('li', {}, h('span', { class: 'lg lg-atari' }), 'cerchio rosso tratteggiato e punto rosso: una tua catena in atari e la sua ultima libertà'),
+    h('li', {}, h('span', { class: 'lg lg-cap' }), 'cerchio verde tratteggiato e punto verde: pietre avversarie che puoi catturare lì'),
+    h('li', {}, h('span', { class: 'lg lg-abc' }, 'A'), 'lettere: le mosse proposte da Suggerisci o dal quiz')));
+  L.body.append(status, alertBox, quizBox, evalBox, legend);
   L.title.textContent = me === BLACK ? 'Tu giochi col nero' : 'Tu giochi col bianco';
   const bUndo = btn('Indietro', undo, 'icon-btn', { 'aria-label': 'Annulla la tua ultima mossa' });
   const bHint = btn('Suggerisci', hint, 'icon-btn');
@@ -196,7 +202,7 @@ function startGame(host, cfg) {
   }
   const draw = extra => {
     const marks = atariMarks();
-    if (bestMark !== null && board.cells[bestMark] === EMPTY) marks[bestMark] = 'tri';
+    if (bestMark !== null && board.cells[bestMark] === EMPTY) marks[bestMark] = 'best';
     const labels = {};
     if (quiz && !quiz.answered) { labels[quiz.a] = 'A'; labels[quiz.b] = 'B'; }
     else if (quiz) { labels[quiz.good] = quiz.good === quiz.a ? 'A' : 'B'; marks[quiz.bad] = 'x'; }
@@ -319,7 +325,7 @@ function startGame(host, cfg) {
           evalBox.innerHTML = '';
           evalBox.append(h('p', { class: 'verdict ' + label[0] }, label[1]));
           if (bestP !== p && delta > 0.03) {
-            evalBox.append(h('p', {}, `Il computer preferiva ${coordName(board, bestP)}, segnata con un triangolo finché resta libera. Stima di vittoria: ${Math.round(wr * 100)}% contro ${Math.round(wrBest * 100)}%.`));
+            evalBox.append(h('p', {}, `Il computer avrebbe giocato in ${coordName(board, bestP)}: è la pietra trasparente con il bordo verde sul goban, resta finché giochi la prossima mossa. Stima di vittoria: ${Math.round(wr * 100)}% con la tua mossa, ${Math.round(wrBest * 100)}% con la sua.`));
             if (board.cells[bestP] === EMPTY) { bestMark = bestP; draw(); }
           }
         }

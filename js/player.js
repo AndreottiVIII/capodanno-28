@@ -1,7 +1,7 @@
 // ===== Problemi e lezioni sul goban =====
 const PROMPT = {
-  capture: 'Il nero gioca e cattura le pietre segnate.',
-  save: 'Il nero gioca e salva le pietre segnate.',
+  capture: 'Il nero gioca e cattura le pietre segnate con il triangolo.',
+  save: 'Il nero gioca e salva le pietre segnate con il triangolo.',
   kill: 'Il nero gioca e uccide il gruppo bianco.',
   live: 'Il nero gioca e fa vivere il suo gruppo.',
 };
@@ -87,7 +87,7 @@ function solutionLine(P) {
 function playProblem(P, L, opts) {
   opts = opts || {};
   const goban = L.goban;
-  let board = P.board.clone(), firstTry = true, reported = false, done = false, moves = [], busy = false, usedSolution = false, hintStep = 0, solvedMoves = null, lastWrong = null;
+  let board = P.board.clone(), firstTry = true, reported = false, done = false, moves = [], busy = false, usedSolution = false, hintStep = 0, solvedMoves = null, lastWrong = null, retryReady = false;
   const snaps = [];
   const emit = (t, info) => opts.onEvent && opts.onEvent(t, info || {});
   const labels = () => { const l = {}; moves.forEach((m, i) => { if (m !== PASS && board.cells[m] !== EMPTY) l[m] = i + 1; }); return l; };
@@ -120,7 +120,7 @@ function playProblem(P, L, opts) {
   }
   function undo() {
     if (busy || done || !snaps.length) return;
-    const sn = snaps.pop(); board = sn.board; moves = sn.moves; lastWrong = null;
+    const sn = snaps.pop(); board = sn.board; moves = sn.moves; lastWrong = null; retryReady = false;
     show({}); goban.clickable = true;
     setFeedback(L, '', 'Di nuovo: ' + (opts.prompt || PROMPT[P.kind]));
     baseActions();
@@ -184,7 +184,7 @@ function playProblem(P, L, opts) {
     await animate(refutationLine(P, after), WHITE, { [w]: 'x' });
     await sleep(300);
     setFeedback(L, 'bad', userIsAttacker(P.kind) ? 'Il bianco si salva: la mossa giusta toglie proprio questa via.' : 'Il nero non si salva: la mossa giusta evita proprio questa sequenza.');
-    busy = false;
+    busy = false; goban.clickable = true; goban.ghostColor = 'none';
   }
   async function replay() {
     busy = true; goban.clickable = false; clearLog(L); L.logBox.open = true;
@@ -193,7 +193,7 @@ function playProblem(P, L, opts) {
     setFeedback(L, 'info', 'Rivediamo la sequenza.');
     await animate(saved, BLACK);
     if (ideaOf(P)) setFeedback(L, 'good', 'Idea: ' + ideaOf(P));
-    busy = false;
+    busy = false; goban.clickable = true; goban.ghostColor = 'none';
   }
   function solvedActions() {
     const nx = btn('Avanti', () => emit('next', { firstTry }), 'primary');
@@ -201,7 +201,10 @@ function playProblem(P, L, opts) {
     nx.focus({ preventScroll: true });
   }
   goban.onPlay = async p => {
-    if (done || busy || !goban.clickable || board.cells[p] !== EMPTY) return;
+    if (busy) return;
+    if (done) { emit('next', { firstTry }); return; }   // risolto: un tocco sul goban porta al prossimo
+    if (retryReady) { const sn = snaps.pop(); board = sn.board; moves = sn.moves; retryReady = false; show({}); }   // dopo un errore si riprova direttamente
+    if (!goban.clickable || board.cells[p] !== EMPTY) return;
     const j = judgeMove(P, board, p);
     if (!j.legal) { setFeedback(L, 'bad', 'Mossa vietata: la pietra resterebbe senza libertà, oppure è un ko.'); return; }
     L.coachOut.hidden = true;
@@ -221,8 +224,8 @@ function playProblem(P, L, opts) {
         if (P.region) summary = 'Il bianco ora riesce a fare due occhi: il punto decisivo era un altro.';
         else { let l = 0; for (const t of P.targets) if (board.cells[t] === WHITE) l = Math.max(l, board.group(t).libs.length); summary = `Il bianco ora ha ${l} libertà e non si cattura più: la tua mossa lasciava una via di fuga.`; }
       } else summary = targetGone(P, board) ? 'Le pietre nere sono catturate: la tua mossa non bastava.' : 'Il bianco ha la cattura in pugno: la tua mossa non bastava.';
-      setFeedback(L, 'bad', summary);
-      busy = false;
+      setFeedback(L, 'bad', summary + ' Tocca il goban per riprovare.');
+      busy = false; retryReady = true; goban.clickable = true; if (goban.svg) goban.svg.style.cursor = 'pointer';
       const retry = btn('Riprova', undo, 'primary');
       setActions([retry, bHint(), bCoach()]);
       retry.focus({ preventScroll: true });
@@ -231,10 +234,10 @@ function playProblem(P, L, opts) {
     logLine(L, said);
     board = j.board; moves.push(p);
     if (isSolved(P, board)) {
-      done = true; solvedMoves = moves.slice(); goban.clickable = false; show({}); goban.pulse(p);
+      done = true; solvedMoves = moves.slice(); goban.clickable = true; show({}); goban.ghostColor = 'none'; goban.pulse(p);
       const th = themeOf(P);
       const perle = usedSolution ? 0 : firstTry ? 2 : 1;
-      setFeedback(L, 'good', (firstTry ? 'Esatto, al primo colpo.' : usedSolution ? 'Risolto con la soluzione: niente perle, ma ora la conosci.' : 'Risolto.') + (th && THEMES[th] ? ` Tema: ${THEMES[th].name.toLowerCase()}.` : ''));
+      setFeedback(L, 'good', (firstTry ? 'Esatto, al primo colpo.' : usedSolution ? 'Risolto con la soluzione: niente perle, ma ora la conosci.' : 'Risolto.') + (th && THEMES[th] ? ` Tema: ${THEMES[th].name.toLowerCase()}.` : '') + ' Tocca il goban per il prossimo.');
       if (ideaOf(P)) logLine(L, 'Idea: ' + ideaOf(P), 'idea');
       report(firstTry);
       emit('solved', { firstTry, usedSolution, perle });
@@ -276,7 +279,7 @@ function runLesson(host, ui, opts) {
   opts = opts || {};
   const U = UNITS[ui]; const L = opts.layout || playLayout(host, 'lesson');
   const goban = L.goban;
-  let i = 0;
+  let i = 0, seqStop = null;
   const empty = new Board(9);
   const P9 = (b, c) => b.pt(COLS.indexOf(c[0]), b.n - parseInt(c.slice(1), 10));
   function next() { if (i < U.lesson.length - 1) { i++; render(); } else finish(); }
@@ -290,6 +293,7 @@ function runLesson(host, ui, opts) {
     L.actions.append(btn('Percorso', () => go('percorso'), ''));
   }
   function render() {
+    if (seqStop) { seqStop(); seqStop = null; }
     const st = U.lesson[i];
     L.kicker.textContent = (opts.kicker || `Lezione ${ui + 1} · ${U.title}`) + ` · ${i + 1}/${U.lesson.length}`;
     if (!opts.outerProgress) setProgress(L, i, U.lesson.length);
@@ -313,48 +317,72 @@ function runLesson(host, ui, opts) {
       const mg = sc.b - (sc.w + 7);
       setFeedback(L, 'info', `Conteggio: nero ${sc.b}, bianco ${sc.w} + 7 di komi = ${sc.w + 7}. ${mg > 0 ? 'Vince il nero di ' + mg : 'Vince il bianco di ' + (-mg)}. Quadratini pieni: territorio nero; vuoti: bianco.`);
     }
-    goban.clickable = false; goban.set({ board: b, marks, overlay });
     const fwd = () => btn(i === U.lesson.length - 1 ? 'Fine' : 'Avanti', next, 'primary');
-    if (st.type === 'info') { L.actions.append(...[fwd(), back].filter(Boolean)); L.actions.firstChild.focus({ preventScroll: true }); return; }
+    if (st.type === 'info') {
+      // spiegazione: basta toccare il goban (o Avanti) per proseguire
+      goban.clickable = true; goban.ghostColor = 'none'; goban.set({ board: b, marks, overlay }); goban.onPlay = () => next();
+      L.actions.append(...[fwd(), back].filter(Boolean)); L.actions.firstChild.focus({ preventScroll: true }); return;
+    }
+    goban.clickable = false; goban.set({ board: b, marks, overlay });
     const answers = new Set(st.answers.map(c => P9(b, c))), found = new Set();
+    const answered = () => { goban.ghostColor = 'none'; goban.onPlay = () => next(); L.actions.innerHTML = ''; L.actions.append(...[fwd(), back].filter(Boolean)); };
     goban.clickable = true; goban.ghostColor = 'mark';
     goban.onPlay = p => {
       if (st.type === 'points') {
         if (answers.has(p)) { if (!found.has(p)) { found.add(p); marks[p] = 'lib'; goban.update({ marks }); setFeedback(L, 'good', `${coordName(b, p)}: sì. ${found.size} di ${answers.size}.`); } }
         else setFeedback(L, 'bad', b.cells[p] !== EMPTY ? 'Quella è una pietra: le libertà sono punti vuoti.' : `${coordName(b, p)} non tocca la pietra (o la catena) lungo una linea.`);
-        if (found.size === answers.size) { goban.clickable = false; setFeedback(L, 'good', 'Tutte trovate.'); L.actions.innerHTML = ''; L.actions.append(...[fwd(), back].filter(Boolean)); }
+        if (found.size === answers.size) { answered(); setFeedback(L, 'good', 'Tutte trovate. Tocca il goban per andare avanti.'); }
       } else {
-        if (answers.has(p)) { goban.clickable = false; goban.pulse(p); setFeedback(L, 'good', st.good || 'Esatto.'); L.actions.innerHTML = ''; L.actions.append(...[fwd(), back].filter(Boolean)); }
+        if (answers.has(p)) { goban.pulse(p); answered(); setFeedback(L, 'good', (st.good || 'Esatto.') + ' Tocca il goban per andare avanti.'); }
         else { marks[p] = 'x'; goban.update({ marks }); delete marks[p]; setFeedback(L, 'bad', st.wrong || 'Non qui.'); }
       }
     };
     setFeedback(L, 'info', st.type === 'points' ? 'Tocca i punti sul goban.' : 'Tocca il punto sul goban.');
     if (back) L.actions.append(back);
   }
+  // sequenza guidata: parte da sola; un tocco sul goban la mette in pausa
   function runSeq(st, back) {
     const start = Board.fromRows(rowsOf(st.rows), st.toMove);
     const pts = st.moves.map(([c]) => c === 'pass' ? PASS : P9(start, c));
-    let k = 0;
+    let k = 0, playing = true, timer = null;
+    const vt = window.ViewTok;
     const note = h('p', { class: 'seq-note' }); L.body.append(note);
+    const stop = () => { clearTimeout(timer); timer = null; };
+    seqStop = stop;
     const draw = () => {
       const b = start.clone(); let c = st.toMove; const labels = {};
       for (let j = 0; j < k; j++) { b.play(pts[j], c); if (pts[j] !== PASS) labels[pts[j]] = j + 1; c = other(c); }
       for (const key in labels) if (b.cells[key] === EMPTY) delete labels[key];
-      goban.clickable = false; goban.set({ board: b, labels, last: k ? pts[k - 1] : null });
+      goban.clickable = true; goban.ghostColor = 'none';
+      goban.set({ board: b, labels, last: k ? pts[k - 1] : null });
+      goban.onPlay = () => toggle();
       return b;
     };
+    const pace = () => reduceMotion ? 2600 : (st.moves[k - 1] && st.moves[k - 1][1] ? 2400 : 1100);
+    function tick() {
+      if (window.ViewTok !== vt || !playing) return;
+      if (k >= pts.length) { playing = false; controls(); return; }
+      step(); timer = setTimeout(tick, pace());
+    }
+    function toggle() {
+      stop();
+      if (k >= pts.length) { k = 0; refresh(); playing = true; timer = setTimeout(tick, 700); controls(); return; }
+      playing = !playing; if (playing) tick(); controls();
+    }
     const controls = () => {
       L.actions.innerHTML = '';
-      const prev = btn('◂ Mossa', () => { if (k > 0) { k--; refresh(); } }, ''); prev.disabled = k === 0;
-      const nxt = btn('Mossa ▸', step, k < pts.length ? 'primary' : ''); nxt.disabled = k >= pts.length;
-      L.actions.append(...[k >= pts.length ? btn(i === U.lesson.length - 1 ? 'Fine' : 'Avanti', next, 'primary') : null, prev, nxt, back].filter(Boolean));
-      (k < pts.length ? nxt : L.actions.firstChild).focus({ preventScroll: true });
+      const done = k >= pts.length;
+      const fwd = btn(i === U.lesson.length - 1 ? 'Fine' : 'Avanti', () => { stop(); next(); }, done ? 'primary' : '');
+      const play = btn(done ? 'Rivedi' : playing ? 'Pausa' : 'Riprendi', toggle, done ? '' : 'primary');
+      const prev = btn('◂', () => { stop(); playing = false; if (k > 0) { k--; refresh(); } }, 'icon-btn', { 'aria-label': 'Mossa precedente' }); prev.disabled = k === 0;
+      const nxt = btn('▸', () => { stop(); playing = false; step(); }, 'icon-btn', { 'aria-label': 'Mossa successiva' }); nxt.disabled = done;
+      L.actions.append(...[done ? fwd : play, prev, nxt, done ? null : fwd, back].filter(Boolean));
     };
     function refresh() {
       clearLog(L);
       const b = start.clone(); let c = st.toMove;
       for (let j = 0; j < k; j++) { logLine(L, describeMove(b, pts[j], c)); b.play(pts[j], c); c = other(c); }
-      draw(); setText(note, k ? (st.moves[k - 1][1] || describeMove(b, pts[k - 1], other(c))) : 'Posizione iniziale. Premi Mossa per andare avanti.'); controls();
+      draw(); setText(note, k ? (st.moves[k - 1][1] || describeMove(b, pts[k - 1], other(c))) : 'Posizione iniziale.'); controls();
     }
     function step() {
       if (k >= pts.length) return;
@@ -364,7 +392,8 @@ function runLesson(host, ui, opts) {
       setText(note, st.moves[k - 1][1] || describeMove(before, pts[k - 1], c));
       controls();
     }
-    draw(); setText(note, 'Posizione iniziale. Premi Mossa per andare avanti.'); controls();
+    draw(); setText(note, 'Guarda la sequenza: parte da sola. Tocca il goban per fermarla.'); controls();
+    timer = setTimeout(tick, 1400);
   }
   render();
   return L;

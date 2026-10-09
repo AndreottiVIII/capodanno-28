@@ -75,12 +75,16 @@ def ordine():
     return out
 
 
+ULTIMO = 1800   # perle della coppia per l'ultimo motivo: circa 90 giorni con un filo al giorno a testa
+
+
 def soglia(k):
-    """Perle della coppia per il motivo k (0-based). Primo dopo i gratuiti a 20, l'ultimo a circa 6000."""
+    """Perle della coppia per il motivo k (0-based): i primi arrivano in fretta, poi si diradano."""
     if k < len(GRATIS):
         return 0
     x = k - len(GRATIS) + 1
-    return int(round(20 * x ** 1.25 / 10.0)) * 10
+    n = 100 - len(GRATIS)
+    return max(5 * x, int(round(ULTIMO * (x / n) ** 1.25 / 5.0)) * 5)
 
 
 def registro():
