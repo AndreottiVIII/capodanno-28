@@ -685,7 +685,9 @@ function boot() {
   if (!Store.data.seen.welcome && !location.hash) location.hash = 'benvenuto';
   render();
   // in locale il service worker si attiva solo con ?sw (altrimenti ogni modifica arriva in ritardo)
+  // e non quando il sito è mostrato dentro un'altra pagina (anteprime)
   const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  if ('serviceWorker' in navigator && location.protocol !== 'file:' && (!local || location.search.includes('sw'))) navigator.serviceWorker.register('sw.js').catch(() => { });
+  let framed = true; try { framed = window.self !== window.top; } catch (e) { }
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !framed && (!local || location.search.includes('sw'))) navigator.serviceWorker.register('sw.js').catch(() => { });
 }
 boot();
