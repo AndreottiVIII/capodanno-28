@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anteprima motivi</title>
+<style>
+body { margin: 0; padding: 16px; font: 13px system-ui, sans-serif; color: #F5EBD9; background: #14213D; }
+.bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.bar button { font: inherit; padding: 6px 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+figure { margin: 0; padding: 8px; border: 1px solid #33466F; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+figure img { height: 120px; max-width: 100%; object-fit: contain; }
+figcaption { text-align: center; color: #AEB7CF; }
+</style>
+</head>
+<body>
+<div class="bar"><button data-c="#14213D">blu</button><button data-c="#3A1E33">melanzana</button><button data-c="#173F3B">giada</button><span id="filtro"></span></div>
+<div class="grid" id="g"></div>
+<script src="../../js/ornamenti.js"></script>
+<script>
+const qs = new URLSearchParams(location.search), fam = qs.get('fam'), big = qs.get('big');
+const g = document.getElementById('g');
+if (big) { g.style.gridTemplateColumns = `repeat(auto-fill, minmax(${big}px, 1fr))`; document.head.insertAdjacentHTML('beforeend', `<style>figure img{height:${Math.round(big * .7)}px}</style>`); }
+for (const o of ORN) {
+  if (fam && o.fam !== fam) continue;
+  const f = document.createElement('figure');
+  f.innerHTML = `<img src="../../${o.file}?t=${Date.now()}" alt=""><figcaption>${o.id}<br>${o.nome}</figcaption>`;
+  g.append(f);
+}
+document.querySelectorAll('[data-c]').forEach(b => b.onclick = () => document.body.style.background = b.dataset.c);
+</script>
+</body>
+</html>
