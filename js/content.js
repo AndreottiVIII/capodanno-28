@@ -58,7 +58,7 @@ function buildProblem(ref) {
   const [t, a, b] = ref.split(':');
   if (t === 'c') {
     const d = CURATED[a], k = +b || 0;
-    const P = mkProblem({ id: a, kind: d.kind, rows: symRows(d.rows, k), targets: d.targets.map(s => symCoord(9, s, k)), depth: d.depth, rating: d.rating, unit: d.unit });
+    const P = mkProblem({ id: a, kind: d.kind, rows: symRows(d.rows, k), targets: d.targets.map(s => symCoord(9, s, k)), region: d.region ? d.region.map(s => symCoord(9, s, k)) : null, depth: d.depth, rating: d.rating, unit: d.unit });
     P.ref = ref; return P;
   }
   if (t === 's') {

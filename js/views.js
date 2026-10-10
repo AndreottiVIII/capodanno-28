@@ -106,7 +106,7 @@ function unitDone(i) { const U = UNITS[i], u = Store.unit(U.id); return u.lesson
 function unitOpen(i) { return i === 0 || unitDone(i - 1) || Store.data.skipLock[UNITS[i].id]; }
 function currentUnitIndex() { for (let i = 0; i < UNITS.length; i++) if (!unitDone(i)) return i; return UNITS.length - 1; }
 const GEN_RATING = { capture1: 70, save: 220, read: 460 };
-function refRating(base) { const [t, id] = base.split(':'); if (t === 'c') return CURATED[id].rating; if (t === 's') return SHAPES[id].rating; return GEN_RATING[id] || 200; }
+function refRating(base) { const [t, id] = base.split(':'); if (t === 'c') return CURATED[id].rating; if (t === 's') return SHAPES[id].rating; if (t === 'k') { const e = CATALOG[CAT_INDEX.get(id)]; return e ? e.k : 300; } return GEN_RATING[id] || 200; }
 function concreteRef(base, variants) { const [t, id] = base.split(':'); if (t === 'g') return `g:${id}:${1 + Math.floor(Math.random() * 1e6)}`; return `${t}:${id}:${Math.floor(Math.random() * variants)}`; }
 const catLevels = () => Math.ceil(CATALOG.length / CAT_PER_LEVEL);
 const catIdx = lv => { const a = []; for (let i = lv * CAT_PER_LEVEL; i < Math.min(CATALOG.length, (lv + 1) * CAT_PER_LEVEL); i++) a.push(i); return a; };
@@ -211,9 +211,15 @@ function carpetMini() {
 // ---------- Percorso ----------
 function viewPath(view) {
   const cur = currentUnitIndex();
-  view.append(pageHead('Dieci lezioni', 'Percorso', 'Una tattica alla volta. Ogni lezione dura pochi minuti; si completa con cinque esercizi risolti al primo colpo.'));
+  view.append(pageHead(`${UNITS.length} lezioni in ${CAPITOLI.length - 1} capitoli`, 'Percorso', 'Una cosa alla volta, pochi minuti per lezione. Le lezioni con esercizi si completano con cinque problemi risolti al primo colpo; le altre basta leggerle.'));
   const list = h('ol', { class: 'path' });
+  let cap = 0;
   UNITS.forEach((U, i) => {
+    if (U.cap !== cap) {
+      cap = U.cap;
+      const inCap = UNITS.filter(x => x.cap === cap), doneN = inCap.filter(x => unitDone(UNITS.indexOf(x))).length;
+      list.append(h('li', { class: 'cap-h' }, h('span', { class: 'kicker' }, `Capitolo ${cap} · ${doneN} di ${inCap.length}`), h('h2', {}, CAPITOLI[cap])));
+    }
     const u = Store.unit(U.id), open = unitOpen(i), done = unitDone(i);
     const meta = done ? 'completata' : !open ? 'chiusa' : !u.lesson ? 'lezione da fare' : U.problems.length ? `esercizi ${Math.min(u.ok, 5)} su 5` : 'completata';
     list.append(h('li', { class: 'path-row card ' + (done ? 'done' : open ? 'open' : 'locked') + (i === cur ? ' cur' : '') },

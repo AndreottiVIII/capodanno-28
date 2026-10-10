@@ -13,7 +13,7 @@ Funziona anche senza internet. Con Supabase configurato (vedi [SUPABASE.md](SUPA
 ## File
 
 - `index.html`, `css/app.css`: guscio e stile, con le tre palette (blu di Tientsin, melanzana, giada).
-- `js/engine.js`: regole, risolutori tattici, Monte Carlo. `js/catalog.js`: il catalogo dei problemi. `js/content.js`: lezioni, temi, lessico.
+- `js/engine.js`: regole, risolutori tattici, Monte Carlo. `js/catalog.js`: il catalogo dei problemi. `js/content.js`: le prime dieci lezioni, temi, lessico. `js/lezioni.js`: le lezioni nuove e i sei capitoli del percorso.
 - `js/store.js`: perle, filo, serie, sigilli, partite dal vivo, codice della sfida. `js/sync.js`: account e progressi condivisi (Supabase).
 - `js/player.js`: problemi e lezioni sul goban. `js/game.js`: partita contro il computer. `js/views.js`: tutte le schermate.
 - `js/ornamenti.js` e `img/orn/`: i 100 motivi del tappeto, generati da `tools/ornamenti/`.

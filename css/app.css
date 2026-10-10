@@ -253,6 +253,9 @@ main { margin-left: var(--side-w); min-height: 100vh; outline: none; position: r
 
 /* ---------- percorso e problemi ---------- */
 .path { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-width: 860px; }
+.cap-h { margin: 22px 0 2px; text-shadow: 0 0 3px var(--field), 0 0 10px var(--field); }
+.cap-h:first-child { margin-top: 0; }
+.cap-h h2 { margin: 0; }
 .path-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 16px; }
 .pr-n { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 1.2rem; border: 1px solid var(--line); color: var(--muted); }
 .path-row.done .pr-n { background: var(--band); border-color: var(--band); color: var(--field); }
