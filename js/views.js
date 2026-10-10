@@ -770,6 +770,12 @@ function boot() {
   // e non quando il sito è mostrato dentro un'altra pagina (anteprime)
   const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   let framed = true; try { framed = window.self !== window.top; } catch (e) { }
-  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !framed && (!local || location.search.includes('sw'))) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !framed && (!local || location.search.includes('sw'))) {
+    const hadController = !!navigator.serviceWorker.controller;
+    // quando arriva una versione nuova del sito, la pagina si ricarica da sola una volta
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => { });
+  }
 }
 boot();
