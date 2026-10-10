@@ -136,7 +136,8 @@ function startGame(host, cfg) {
   const setBtn = h('button', { class: 'cfg-btn', type: 'button', 'aria-expanded': 'false', onclick: () => toggleSettings() }, cfgLabel(cfg), h('span', { class: 'chev', 'aria-hidden': 'true' }, '▾'));
   const settings = h('div', { class: 'cfg-sheet card', hidden: true });
   const youCard = h('div', { class: 'pl-card' }), aiCard = h('div', { class: 'pl-card' });
-  const top = h('div', { class: 'game-top' }, setBtn, settings, h('div', { class: 'pl-cards' }, youCard, aiCard));
+  const helpBar = h('div', { class: 'help-bar', role: 'group', 'aria-label': 'Aiuti in partita' });
+  const top = h('div', { class: 'game-top' }, setBtn, settings, h('div', { class: 'pl-cards' }, youCard, aiCard), helpBar);
   const playHost = h('div', {});
   host.append(top, playHost);
   const L = playLayout(playHost, 'game');
@@ -158,6 +159,30 @@ function startGame(host, cfg) {
   const bResign = btn('Abbandona', () => { if (confirm('Abbandonare la partita?')) end(ai, 'Hai abbandonato.'); }, 'ghost');
   const gameActions = () => { L.actions.innerHTML = ''; L.actions.append(bUndo, bHint, ...(mode === 'go' ? [bPass] : []), bCoach, bResign); };
   gameActions();
+  // aiuti accesi e spenti al volo, senza ricominciare la partita
+  function renderHelp() {
+    helpBar.innerHTML = '';
+    const any = cfg.atari || cfg.coach || cfg.quiz !== 'off';
+    const chip = (label, on, fn, title) => h('button', { type: 'button', class: 'help-chip' + (on ? ' on' : ''), 'aria-pressed': String(on), title, onclick: fn }, h('span', { class: 'hc-dot', 'aria-hidden': 'true' }), label);
+    helpBar.append(h('span', { class: 'help-l' }, 'Aiuti'),
+      chip('Atari', cfg.atari, () => setHelp('atari', !cfg.atari), 'Avvisi quando una catena è in atari, con la libertà evidenziata'),
+      chip('Valutazione', cfg.coach, () => setHelp('coach', !cfg.coach), 'Un giudizio su ogni tua mossa e la mossa che il computer preferiva'),
+      chip('Quiz A/B', cfg.quiz !== 'off', () => setHelp('quiz', cfg.quiz !== 'off' ? 'off' : (Store.data.game.quizLast || 'pessima')), 'A ogni turno due mosse da confrontare'),
+      btn(any ? 'Togli tutti' : 'Rimetti tutti', () => { if (any) { setHelp('atari', false); setHelp('coach', false); setHelp('quiz', 'off'); } else { setHelp('atari', true); setHelp('coach', true); } }, 'ghost small'));
+  }
+  function setHelp(key, val) {
+    if (key === 'quiz' && cfg.quiz !== 'off') Store.data.game.quizLast = cfg.quiz;
+    cfg[key] = val; Store.data.game[key] = val; Store.save();
+    if (key === 'coach' && !val) { bestMark = null; evalBox.innerHTML = ''; }
+    if (key === 'atari') renderAlert();
+    if (key === 'quiz') {
+      quizTok++; quiz = null; quizBox.innerHTML = '';
+      const myTurn = !over && !busy && board.toMove === me;
+      if (myTurn && val !== 'off') maybeQuiz(); else if (myTurn) goban.clickable = true;
+    }
+    draw(); renderHelp();
+  }
+  renderHelp();
   goban.ghostColor = me;
   goban.onPending = p => setStatus(`Tocca di nuovo ${coordName(board, p)} per giocare.`);
 

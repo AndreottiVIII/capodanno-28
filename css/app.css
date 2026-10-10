@@ -62,10 +62,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .office-btn { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 12px; background: var(--tab); border: 1px solid var(--line); color: var(--muted); cursor: pointer; font-size: .92rem; }
 .office-btn:hover { color: var(--text); border-color: var(--band); }
 kbd { font-family: var(--body); font-size: .75rem; border: 1px solid var(--line); padding: 0 5px; }
-.side-orn { position: absolute; left: -30px; bottom: -26px; width: 180px; opacity: .95; pointer-events: none; }
+/* il vaso in fondo al menu: sta in coda alle voci, si rimpicciolisce o sparisce se manca spazio, non le copre mai */
+.side-orn { flex: 0 1 190px; min-height: 0; width: 100%; margin: auto -18px -18px; object-fit: contain; object-position: left bottom; pointer-events: none; }
+@media (max-height: 640px) { .side-orn { display: none; } }
 .topbar { display: none; }
 .tabs { display: none; }
-main { margin-left: var(--side-w); min-height: 100vh; outline: none; }
+main { margin-left: var(--side-w); min-height: 100vh; outline: none; position: relative; isolation: isolate; overflow-x: clip; }
 
 @media (max-width: 899px) {
   .side { display: none; }
@@ -80,7 +82,7 @@ main { margin-left: var(--side-w); min-height: 100vh; outline: none; }
 }
 
 /* ---------- pagina ---------- */
-.view { position: relative; isolation: isolate; padding: 34px 40px 56px; max-width: 1240px; min-height: 100vh; }
+.view { padding: 34px 40px 56px; max-width: 1240px; min-height: 100vh; }
 @media (max-width: 899px) { .view { padding: 20px 16px 32px; min-height: 0; } }
 .view::after { content: ''; display: block; height: 16px; margin-top: 40px; background: var(--band); -webkit-mask: url(../img/greca.svg) repeat-x center / 16px 16px; mask: url(../img/greca.svg) repeat-x center / 16px 16px; opacity: .8; }
 .page-head { margin-bottom: 22px; max-width: 60ch; text-shadow: 0 1px 12px var(--field); }
@@ -452,6 +454,16 @@ body.office .shell, body.office #termbox, body.office #toasts { display: none; }
 .lg-atari { border: 2px dashed #B8361F; background: radial-gradient(#B8361F 0 4px, transparent 5px); }
 .lg-cap { border: 2px dashed #2F7A55; background: radial-gradient(#2F7A55 0 4px, transparent 5px); }
 .lg-abc { background: #F7EBD0; color: #8E2A18; font-weight: 700; font-size: .75rem; border: 2px solid #B8361F; }
+
+
+/* aiuti in partita: interruttori rapidi */
+.help-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.help-l { color: var(--muted); font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; margin-right: 4px; }
+.help-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; background: var(--field); border: 1px solid var(--line); color: var(--muted); cursor: pointer; font-size: .92rem; }
+.help-chip .hc-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid currentColor; }
+.help-chip.on { color: var(--text); border-color: var(--band); }
+.help-chip.on .hc-dot { background: var(--pearl); border-color: var(--pearl); }
+.help-chip:hover { border-color: var(--band); }
 
 /* ---------- animazioni ---------- */
 .breath { animation: breath 1.8s ease-in-out infinite; }

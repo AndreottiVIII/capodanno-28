@@ -1,6 +1,6 @@
 // Service worker: il sito funziona anche senza internet.
 // A ogni pubblicazione cambia VERSION, così i telefoni scaricano i file nuovi.
-const VERSION = 'cp28-2026-10-09-3';
+const VERSION = 'cp28-2026-10-10-1';
 importScripts('js/ornamenti.js');
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',

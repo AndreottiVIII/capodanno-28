@@ -71,7 +71,8 @@ function decorate(view, count) {
     const img = h('img', { class: 'orn ' + sl.cls + (Math.random() < .5 ? ' flip' : ''), src: o.file, alt: '', style: { width: w + 'px' }, onerror: function () { this.remove(); } });
     layer.append(img);
   }
-  view.prepend(layer);
+  // il livello degli ornamenti copre tutta l'area a destra del menu: sugli schermi larghi i motivi stanno nei margini
+  const main = $('#main'); const old = $('.orn-layer', main); if (old) old.remove(); main.prepend(layer);
 }
 
 // ---------- Router ----------
@@ -447,6 +448,7 @@ function viewCarpet(view) {
   const tot = Store.perleCoppia(), un = unlockedOrn(), nx = nextOrn();
   view.append(pageHead('Tappeto Nichols', 'Il vostro tappeto', `Le perle di tutti e due sbloccano i motivi: ${un.length} su 100. ` + (nx ? `Prossimo a ${nx.soglia} perle: ${nx.nome.toLowerCase()} (ne mancano ${nx.soglia - tot}).` : 'Il tappeto è completo.')));
   if (nx) view.append(h('p', { class: 'card pace' }, paceText(tot, nx)));
+  view.append(h('p', { class: 'dim small' }, 'Ogni motivo sbloccato entra negli ornamenti del sito (ogni schermata ne pesca tre a caso) e nel salvaschermo della modalità ufficio.'));
   if (!Store.data.rival) view.append(h('p', { class: 'dim small' }, Sync.on ? 'Contano anche le perle dell\'altro, quando siete entrati tutti e due con l\'account.' : 'Contano anche le perle dell\'altro telefono, quando incollate il suo codice nella Sfida.'));
   const grid = h('div', { class: 'carpet' });
   for (const o of ORN) {
