@@ -78,7 +78,7 @@ function decorate(view, count) {
 // ---------- Router ----------
 const VIEWS = {
   oggi: viewToday, percorso: viewPath, lezione: viewLesson, esercizi: viewUnitProblems,
-  problemi: viewProblems, livello: viewLevel, catalogo: viewCatalogRun, tema: viewTheme, infinito: viewEndless, ripasso: viewReview, caso: viewRandom,
+  problemi: viewProblems, livello: viewLevel, catalogo: viewCatalogRun, tema: viewTheme, infinito: viewEndless, ripasso: viewReview, caso: viewRandom, tredici: viewThirteen,
   partita: viewGame, sfida: viewChallenge, tappeto: viewCarpet, lessico: viewGlossary, maestro: viewMaestro,
   progressi: viewProgress, impostazioni: viewSettings, benvenuto: viewWelcome,
 };
@@ -91,7 +91,7 @@ function render() {
   document.body.classList.toggle('welcome-mode', id === 'benvenuto');
   const view = h('div', { class: 'view view-' + (VIEWS[id] ? id : 'oggi') });
   main.append(view);
-  setNav(id === 'lezione' || id === 'esercizi' ? 'percorso' : ['livello', 'catalogo', 'tema', 'infinito', 'ripasso', 'caso'].includes(id) ? 'problemi' : id);
+  setNav(id === 'lezione' || id === 'esercizi' ? 'percorso' : ['livello', 'catalogo', 'tema', 'infinito', 'ripasso', 'caso', 'tredici'].includes(id) ? 'problemi' : id);
   fn(view, ...args.map(decodeURIComponent));
   if (id !== 'benvenuto') decorate(view, id === 'tappeto' ? 2 : 3);
   window.scrollTo(0, 0);
@@ -106,7 +106,7 @@ function unitDone(i) { const U = UNITS[i], u = Store.unit(U.id); return u.lesson
 function unitOpen(i) { return i === 0 || unitDone(i - 1) || Store.data.skipLock[UNITS[i].id]; }
 function currentUnitIndex() { for (let i = 0; i < UNITS.length; i++) if (!unitDone(i)) return i; return UNITS.length - 1; }
 const GEN_RATING = { capture1: 70, save: 220, read: 460 };
-function refRating(base) { const [t, id] = base.split(':'); if (t === 'c') return CURATED[id].rating; if (t === 's') return SHAPES[id].rating; if (t === 'k') { const e = CATALOG[CAT_INDEX.get(id)]; return e ? e.k : 300; } return GEN_RATING[id] || 200; }
+function refRating(base) { const [t, id] = base.split(':'); if (t === 'c') return CURATED[id].rating; if (t === 's') return SHAPES[id].rating; if (t === 'k') { const e = CATALOG[CAT_INDEX.get(id)]; return e ? e.k : 300; } if (t === 'q') { const e = CATALOG13[CAT13_INDEX.get(id)]; return e ? e.k + 40 : 400; } return GEN_RATING[id] || 200; }
 function concreteRef(base, variants) { const [t, id] = base.split(':'); if (t === 'g') return `g:${id}:${1 + Math.floor(Math.random() * 1e6)}`; return `${t}:${id}:${Math.floor(Math.random() * variants)}`; }
 const catLevels = () => Math.ceil(CATALOG.length / CAT_PER_LEVEL);
 const catIdx = lv => { const a = []; for (let i = lv * CAT_PER_LEVEL; i < Math.min(CATALOG.length, (lv + 1) * CAT_PER_LEVEL); i++) a.push(i); return a; };
@@ -247,6 +247,7 @@ function viewProblems(view) {
   view.append(pageHead(`${CATALOG.length} problemi`, 'Problemi', `${catLevels()} livelli, dal più facile. Ogni soluzione è verificata da un risolutore e spiegata. Un livello si apre risolvendone ${LEVEL_UNLOCK} del precedente.`));
   view.append(h('div', { class: 'tiles' },
     h('a', { class: 'tile card accent', href: '#catalogo/' + cur }, h('span', { class: 'qc-t' }, `Continua: livello ${cur + 1}`), h('span', { class: 'dim' }, `${cst.solved} di ${cst.total} risolti`)),
+    h('a', { class: 'tile card', href: '#tredici' }, h('span', { class: 'qc-t' }, 'Sul 13×13'), h('span', { class: 'dim' }, `${CATALOG13.filter(q => (Store.data.pb['q:' + q.id] || {}).s).length} di ${CATALOG13.length} risolti, sul goban del retro`)),
     h('a', { class: 'tile card', href: '#caso' }, h('span', { class: 'qc-t' }, 'A caso'), h('span', { class: 'dim' }, 'dieci problemi pescati dal catalogo, temi misti')),
     h('a', { class: 'tile card', href: '#infinito' }, h('span', { class: 'qc-t' }, 'Allenamento infinito'), h('span', { class: 'dim' }, 'problemi nuovi generati al momento, al tuo livello')),
     h('a', { class: 'tile card', href: '#ripasso' }, h('span', { class: 'qc-t' }, 'Ripasso'), h('span', { class: 'dim' }, due ? `${plural(due, 'problema', 'problemi')} da rifare oggi` : 'niente da ripassare oggi'))));
@@ -316,6 +317,11 @@ function randomItems(n) {
   const maxLv = Math.min(catLevels() - 1, catCurrentLevel() + 3), pool = [];
   for (let lv = 0; lv <= maxLv; lv++) pool.push(...catIdx(lv));
   return catRefs([...shuffle(pool.filter(i => !pbOf(i).s)), ...shuffle(pool.filter(i => pbOf(i).s))].slice(0, n));
+}
+// problemi sul 13×13: prima i non risolti, dal più facile
+function viewThirteen(view) {
+  const l = CATALOG13.slice().sort((a, b) => a.k - b.k), rest = l.filter(q => !(Store.data.pb['q:' + q.id] || {}).s);
+  runSeries(view, (rest.length ? rest : l).slice(0, 10).map(q => ({ ref: 'q:' + q.id + ':' + Math.floor(Math.random() * 8) })), { title: 'Sul 13×13', again: () => render() });
 }
 function viewRandom(view) { runSeries(view, randomItems(10), { title: 'A caso', again: () => render() }); }
 function viewReview(view) {
