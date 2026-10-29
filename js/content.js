@@ -112,6 +112,10 @@ const THEMES = {
   uccidere: { name: 'Vita e morte: uccidere', jp: 'shikatsu', idea: 'Cerca il punto vitale dello spazio interno, quello che impedisce al bianco di dividerlo in due occhi. Se hai già una pietra dentro, chiediti come renderla utile.', unit: 'occhi' },
   vivere: { name: 'Vita e morte: vivere', jp: 'shikatsu', idea: 'Occupa il punto che divide lo spazio in due occhi. Se c\'è una pietra bianca dentro, valuta se catturarla o se basta chiudere lo spazio.', unit: 'occhi' },
 };
+// problemi tolti dal catalogo: scale e letture così lunghe che a metà il risolutore non trova più la mossa giusta
+// (trovati dal collaudo tools/collaudo.js, che li risolve tutti fino in fondo)
+const CAT_ESCLUSI = new Set(['1hqx3l7', '1tt1d5z', '1yqm1ha', '16thqh8', '7q7fbt', '11jhmbf', '1l57gg0', '1p0xeaf', '1kos846']);
+for (let i = CATALOG.length - 1; i >= 0; i--) if (CAT_ESCLUSI.has(CATALOG[i].id)) CATALOG.splice(i, 1);
 const CAT_INDEX = new Map(CATALOG.map((e, i) => [e.id, i]));
 function catProblem(i) {
   const e = CATALOG[i]; if (!e) return null;

@@ -154,7 +154,12 @@ function startGame(host, cfg) {
   L.title.textContent = me === BLACK ? 'Tu giochi col nero' : 'Tu giochi col bianco';
   const bUndo = btn('Indietro', undo, 'icon-btn', { 'aria-label': 'Annulla la tua ultima mossa' });
   const bHint = btn('Suggerisci', hint, 'icon-btn');
-  const bPass = btn('Passo', () => userMove(PASS), 'icon-btn');
+  // a inizio partita un passo per sbaglio la chiuderebbe (il computer passa anche lui se è avanti col komi)
+  const bPass = btn('Passo', () => {
+    const filled = board.cells.filter(v => v === BLACK || v === WHITE).length;
+    if (filled < n * n * 0.35 && !confirm('Passare adesso? Se passa anche il computer la partita finisce e si contano i punti.')) return;
+    userMove(PASS);
+  }, 'icon-btn');
   const bCoach = btn('Il maestro', askCoach, 'ghost');
   const bResign = btn('Abbandona', () => { if (confirm('Abbandonare la partita?')) end(ai, 'Hai abbandonato.'); }, 'ghost');
   const gameActions = () => { L.actions.innerHTML = ''; L.actions.append(bUndo, bHint, ...(mode === 'go' ? [bPass] : []), bCoach, bResign); };
