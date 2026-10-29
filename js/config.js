@@ -1,12 +1,7 @@
 // ===== Configurazione =====
-// Con Supabase configurato: si entra con email e password e i progressi sono condivisi.
+// Progressi online: con js/chiave.js (vedi ONLINE.md) si entra con una password e i progressi sono condivisi.
 // Senza: tutto resta sul dispositivo e la sfida passa per un codice da scambiarsi.
-// Come si crea il progetto Supabase: vedi SUPABASE.md.
 const CONFIG = {
-  supabase: {
-    url: '',   // Project URL, es. 'https://abcdefghijkl.supabase.co'
-    key: '',   // chiave "publishable" (o "anon"): è fatta per stare nel sito, non è segreta
-  },
 
   perleFilo: 10,        // perle per chiudere il filo di oggi
   perlePerPietra: 5,    // una pietra di vantaggio ogni 5 perle di scarto

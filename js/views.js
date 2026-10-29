@@ -161,7 +161,7 @@ function viewToday(view) {
     h('a', { class: 'quick-card', href: '#partita' }, h('span', { class: 'qc-t' }, 'Partita'), h('span', { class: 'dim' }, cfgLabel(Store.data.game))),
     h('a', { class: 'quick-card', href: '#maestro' }, h('span', { class: 'qc-t' }, 'Il maestro'), h('span', { class: 'dim' }, 'domande e spiegazioni')),
     h('a', { class: 'quick-card', href: '#problemi' }, h('span', { class: 'qc-t' }, 'Problemi'), h('span', { class: 'dim' }, `${CATALOG.length} problemi, livello ${catCurrentLevel() + 1}`))));
-  if (Sync.on && !Sync.logged) view.append(h('a', { class: 'banner', href: '#impostazioni' }, h('b', {}, 'Entra con il tuo account'), h('span', { class: 'dim' }, ' per avere gli stessi progressi su computer e telefono e vedere le perle dell\'altro.')));
+  if (Sync.on && !Sync.logged) view.append(h('a', { class: 'banner', href: '#impostazioni' }, h('b', {}, 'Entra con la password'), h('span', { class: 'dim' }, ' per avere gli stessi progressi su computer e telefono e vedere le perle dell\'altro.')));
   view.append(head, playHost, strip);
   if (d.idx >= d.items.length) return dailyDone(playHost);
   runSeries(playHost, d.items, {
@@ -369,7 +369,7 @@ function viewChallenge(view) {
       h('li', {}, 'Le perle di ', h('b', {}, 'tutti e due insieme'), ' sbloccano i 100 motivi del vostro tappeto.'),
       h('li', {}, h('b', {}, 'I sigilli'), ` arrivano con ${CONFIG.sigillo} problemi risolti della stessa tattica.`))));
   if (Sync.on && !Sync.logged) view.append(accountCard());
-  // senza account: il codice, spiegato passo per passo
+  // senza password: il codice, spiegato passo per passo
   if (!Sync.logged) {
     const code = Store.makeCode();
     const ta = h('textarea', { class: 'code', readonly: true, rows: 3, 'aria-label': 'Il tuo codice' }, code);
@@ -381,7 +381,7 @@ function viewChallenge(view) {
       try { await navigator.clipboard.writeText(text); msg.className = 'feedback good'; msg.textContent = 'Copiato: incollalo in un messaggio per lei.'; } catch (e) { ta.select(); msg.textContent = 'Seleziona il codice e copialo.'; }
     };
     view.append(h('details', { class: 'card codes', open: (!riv && !Sync.on) || null },
-      h('summary', {}, Sync.on ? 'Senza account: le perle a mano' : 'Come vedere le perle dell\'altro'),
+      h('summary', {}, Sync.on ? 'Senza password: le perle a mano' : 'Come vedere le perle dell\'altro'),
       h('p', { class: 'dim' }, 'Ogni telefono conta le sue perle. Per confrontarle vi mandate un codice: è solo un riassunto delle perle della settimana, delle serie, dei sigilli e delle partite dal vivo. Si può rimandare quando si vuole.'),
       h('ol', { class: 'steps-list' },
         h('li', {}, 'Tocca ', h('b', {}, 'Manda le tue perle'), ': si apre un messaggio con il codice, mandalo a lei.'),
@@ -455,7 +455,7 @@ function viewCarpet(view) {
   view.append(pageHead('Tappeto Nichols', 'Il vostro tappeto', `Le perle di tutti e due sbloccano i motivi: ${un.length} su 100. ` + (nx ? `Prossimo a ${nx.soglia} perle: ${nx.nome.toLowerCase()} (ne mancano ${nx.soglia - tot}).` : 'Il tappeto è completo.')));
   if (nx) view.append(h('p', { class: 'card pace' }, paceText(tot, nx)));
   view.append(h('p', { class: 'dim small' }, 'Ogni motivo sbloccato entra negli ornamenti del sito (ogni schermata ne pesca tre a caso) e nel salvaschermo della modalità ufficio.'));
-  if (!Store.data.rival) view.append(h('p', { class: 'dim small' }, Sync.on ? 'Contano anche le perle dell\'altro, quando siete entrati tutti e due con l\'account.' : 'Contano anche le perle dell\'altro telefono, quando incollate il suo codice nella Sfida.'));
+  if (!Store.data.rival) view.append(h('p', { class: 'dim small' }, Sync.on ? 'Contano anche le perle dell\'altro, quando siete entrati tutti e due con la password.' : 'Contano anche le perle dell\'altro telefono, quando incollate il suo codice nella Sfida.'));
   const grid = h('div', { class: 'carpet' });
   for (const o of ORN) {
     const open = o.soglia <= tot, next = nx && o.id === nx.id;
@@ -600,29 +600,47 @@ function viewProgress(view) {
   view.append(d.history.length ? h('div', { class: 'readout card' }, ...d.history.slice(0, 20).map(e => h('div', { class: 'ro-row' }, h('span', { class: e.ok ? 'ok' : 'ko' }, e.ok ? '◆' : '✕'), h('span', {}, e.k === 'g' ? 'Partita: ' + e.label : 'Problema: ' + ((UNITS.find(U => U.id === e.unit) || {}).title || '')), h('span', { class: 'dim' }, shortDate(e.d))))) : h('p', { class: 'dim' }, 'Registro vuoto. Si comincia da Oggi.'));
 }
 
-// ---------- Account ----------
+// ---------- Accesso online: password, poi chi sei ----------
 function loginForm(onDone) {
-  const em = h('input', { type: 'email', autocomplete: 'username', placeholder: 'la tua email', 'aria-label': 'Email', required: true });
-  const pw = h('input', { type: 'password', autocomplete: 'current-password', placeholder: 'password', 'aria-label': 'Password', required: true });
+  const box = h('div', { class: 'login' });
   const msg = h('p', { class: 'feedback', 'aria-live': 'polite' });
+  const done = () => { toast('Sei dentro: i progressi ora sono condivisi.', 'gold'); applyTheme(); (onDone || render)(); };
+  // passo 2: scegli chi sei tra i giocatori già entrati, o entra come nuovo
+  function chooseStep(players) {
+    box.innerHTML = '';
+    const nome = h('input', { type: 'text', value: Store.data.name || '', placeholder: 'il tuo nome', autocomplete: 'given-name', maxlength: 24, 'aria-label': 'Il tuo nome' });
+    const go = async name => {
+      msg.className = 'feedback info'; msg.textContent = 'Scarico i progressi…';
+      try { await Sync.choose(name); msg.textContent = ''; done(); } catch (err) { msg.className = 'feedback bad'; msg.textContent = err.message; }
+    };
+    box.append(h('p', {}, h('b', {}, 'Chi sei?')),
+      players.length ? h('div', { class: 'actions' }, ...players.map(p => btn(p.name, () => go(p.name), 'primary'))) : null,
+      h('form', { class: 'login-row', onsubmit: e => { e.preventDefault(); if (nome.value.trim()) go(nome.value.trim()); } }, nome,
+        h('button', { class: 'btn' + (players.length ? '' : ' primary'), type: 'submit' }, players.length ? 'Sono un altro' : 'Sono io')),
+      players.length ? h('p', { class: 'dim small' }, 'Se è la prima volta che entri, scrivi il tuo nome. Se sei già entrato su un altro dispositivo, tocca il tuo nome.') : null, msg);
+  }
+  // passo 1: la password
+  const pw = h('input', { type: 'password', autocomplete: 'current-password', placeholder: 'la password di Capodanno 28', 'aria-label': 'Password', required: true });
   const sub = h('button', { class: 'btn primary', type: 'submit' }, 'Entra');
-  return h('form', { class: 'login', onsubmit: async e => {
-    e.preventDefault(); sub.disabled = true; msg.className = 'feedback info'; msg.textContent = 'Entro…';
-    try { await Sync.login(em.value, pw.value); msg.textContent = ''; toast('Sei dentro: i progressi ora sono condivisi.', 'gold'); applyTheme(); (onDone || render)(); }
+  box.append(h('form', { class: 'login-row', onsubmit: async e => {
+    e.preventDefault(); sub.disabled = true; msg.className = 'feedback info'; msg.textContent = 'Apro…';
+    try { const players = await Sync.unlock(pw.value); msg.textContent = ''; chooseStep(players); }
     catch (err) { msg.className = 'feedback bad'; msg.textContent = err.message; sub.disabled = false; }
-  } }, h('div', { class: 'login-row' }, em, pw, sub), msg);
+  } }, pw, sub), msg);
+  return box;
 }
 function accountCard() {
   if (!Sync.on) return null;
   const box = h('section', { class: 'card account' });
   if (Sync.logged) {
     const t = Sync.lastSync ? new Date(Sync.lastSync).toTimeString().slice(0, 5) : null;
-    box.append(h('h2', {}, 'Il tuo account'),
-      h('p', {}, `Sei dentro come ${Sync.email}. Resti collegato su questo dispositivo finché non esci.`),
-      h('p', { class: 'dim small' }, Sync.status === 'offline' ? 'Sei offline: i progressi restano qui e partono appena torna la rete.' : t ? `Progressi salvati alle ${t}.` : 'Progressi salvati.'),
-      h('div', { class: 'actions' }, btn('Aggiorna adesso', async () => { await Sync.pull(true); render(); }, ''), btn('Esci', async () => { if (confirm('Uscire dall\'account su questo dispositivo? I progressi restano salvati.')) { await Sync.logout(); render(); } }, 'ghost')));
+    const st = Sync.status === 'offline' ? 'Sei offline: i progressi restano qui e partono appena torna la rete.' : Sync.status === 'chiave' ? 'La chiave online non funziona più (forse è scaduta): va rifatta, vedi ONLINE.md.' : t ? `Progressi salvati online alle ${t}.` : 'Progressi online attivi.';
+    box.append(h('h2', {}, 'Online'),
+      h('p', {}, `Sei dentro come ${Sync.who}. Resti dentro su questo dispositivo finché non esci.`),
+      h('p', { class: 'dim small' }, st),
+      h('div', { class: 'actions' }, btn('Aggiorna adesso', async () => { await Sync.pull(); render(); }, ''), btn('Esci', async () => { if (confirm('Uscire su questo dispositivo? I progressi restano salvati online.')) { await Sync.logout(); render(); } }, 'ghost')));
   } else {
-    box.append(h('h2', {}, 'Entra'), h('p', { class: 'dim' }, 'Con l\'account i progressi passano dal computer al telefono, e le perle di tutti e due arrivano da sole nella sfida. Si entra una volta sola: poi resti dentro.'), loginForm());
+    box.append(h('h2', {}, 'Entra'), h('p', { class: 'dim' }, 'Con la password i progressi passano dal computer al telefono, e le perle di tutti e due arrivano da sole nella sfida. Si entra una volta sola per dispositivo: poi resti dentro.'), loginForm());
   }
   return box;
 }
@@ -698,8 +716,8 @@ function viewWelcome(view) {
         h('p', { class: 'dim' }, 'Nella scatola c\'è un goban vero. Qui c\'è dove imparare a usarlo: cinque, dieci minuti al giorno.'),
         h('label', { class: 'field' }, h('span', {}, 'Come ti chiami'), name),
         h('div', { class: 'field' }, h('span', {}, 'Scegli il tuo tappeto'), pals),
-        Sync.on && !Sync.logged ? h('div', { class: 'field' }, h('span', {}, 'Entra con il tuo account (email e password che ti ha dato [nome])'), loginForm(start)) : null,
-        h('div', { class: 'actions' }, btn(Sync.on && !Sync.logged ? 'Comincia senza account' : 'Cominciamo', start, Sync.on && !Sync.logged ? 'ghost' : 'primary big'))))));
+        Sync.on && !Sync.logged ? h('div', { class: 'field' }, h('span', {}, 'Entra con la password che ti ha dato [nome]'), loginForm(start)) : null,
+        h('div', { class: 'actions' }, btn(Sync.on && !Sync.logged ? 'Comincia senza entrare' : 'Cominciamo', start, Sync.on && !Sync.logged ? 'ghost' : 'primary big'))))));
 }
 
 // ---------- Modalità ufficio: il tappeto come salvaschermo ----------
@@ -752,7 +770,7 @@ const Office = {
 // ---------- Avvio ----------
 function boot() {
   Store.init(); Sync.load(); applyTheme(); buildChrome();
-  // con l'account: si scaricano i progressi all'avvio e ogni volta che l'app torna in primo piano
+  // online: si scaricano i progressi all'avvio e ogni volta che l'app torna in primo piano
   if (Sync.on && Sync.logged) {
     Sync.pull().then(() => { const id = (location.hash.slice(1) || 'oggi').split('/')[0]; if (!['oggi', 'partita', 'lezione', 'esercizi', 'catalogo', 'tema', 'infinito', 'ripasso', 'caso'].includes(id)) render(); else refreshChrome(); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Sync.pull(); });

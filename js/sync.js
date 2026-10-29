@@ -1,80 +1,111 @@
-// ===== Account e progressi condivisi (Supabase) =====
-// Email e password; la sessione resta salvata sul dispositivo e si rinnova da sola.
-// Senza configurazione (CONFIG.supabase vuoto) il sito funziona in locale.
-const SESSION_KEY = 'capodanno28-sessione';
+// ===== Progressi condivisi online (repository GitHub privato) =====
+// Come la classifica del quiz: la chiave GitHub, limitata al solo repository dei progressi, sta in
+// js/chiave.js cifrata con una password (PBKDF2-SHA256 → AES-256-GCM). La prima volta si scrive la
+// password e si sceglie chi si è; poi si resta dentro su quel dispositivo.
+// Ogni giocatore ha il suo file: progressi/<nome>.json. Senza js/chiave.js il sito funziona in locale.
+const SESSION_KEY = 'capodanno28-online';
+const GH = 'https://api.github.com';
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const toB64 = str => btoa(unescape(encodeURIComponent(str)));
+const fromB64 = s => decodeURIComponent(escape(atob(s.replace(/\s/g, ''))));
+const slugOf = name => (name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'giocatore';
+
 const Sync = {
-  session: null, status: 'off', lastSync: null, timer: null, busy: null, others: [],
-  get on() { return !!(CONFIG.supabase.url && CONFIG.supabase.key); },
-  get logged() { return !!(this.session && this.session.user); },
-  get email() { return this.session && this.session.user ? this.session.user.email : ''; },
-  headers(auth) {
-    const h = { apikey: CONFIG.supabase.key, 'Content-Type': 'application/json' };
-    if (auth && this.session) h.Authorization = 'Bearer ' + this.session.access_token;
-    return h;
-  },
+  session: null, status: 'off', lastSync: null, timer: null, busy: null, others: [], sha: null, pending: null,
+  get on() { return typeof CHIAVE_ONLINE !== 'undefined' && !!(CHIAVE_ONLINE && CHIAVE_ONLINE.ct); },
+  get logged() { return !!(this.session && this.session.token && this.session.slug); },
+  get who() { return this.session ? this.session.name : ''; },
   load() { try { this.session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { this.session = null; } },
-  keep(s) {
-    this.session = s ? { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: s.expires_at || Math.floor(Date.now() / 1000) + (s.expires_in || 3600), user: { id: s.user.id, email: s.user.email } } : null;
-    try { if (this.session) localStorage.setItem(SESSION_KEY, JSON.stringify(this.session)); else localStorage.removeItem(SESSION_KEY); } catch (e) { }
+  keep(s) { this.session = s; try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); } catch (e) { } },
+  async api(method, path, body) {
+    const r = await fetch(`${GH}/repos/${CHIAVE_ONLINE.repo}/contents/${path}`, {
+      method, cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + (this.session || this.pending).token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (r.status === 404) return null;
+    if (!r.ok) { const e = new Error('github ' + r.status); e.status = r.status; throw e; }
+    return r.json();
   },
-  async auth(path, body) {
-    const r = await fetch(CONFIG.supabase.url + '/auth/v1/' + path, { method: 'POST', headers: this.headers(false), body: JSON.stringify(body) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error(j.error_description || j.msg || j.message || 'Accesso non riuscito'); e.status = r.status; throw e; }
-    return j;
+  // 1) la password apre la chiave; restituisce i giocatori già presenti
+  async unlock(password) {
+    if (!this.on) throw new Error('La chiave online non è ancora stata preparata.');
+    let token;
+    const k = CHIAVE_ONLINE, enc = new TextEncoder();
+    try {
+      const base = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(k.salt), iterations: k.giri, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      token = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(k.iv) }, key, b64(k.ct)));
+    } catch (e) { throw new Error('Password sbagliata.'); }
+    this.pending = { token };
+    let list;
+    try { list = await this.api('GET', 'progressi'); }
+    catch (e) { this.pending = null; throw new Error(e.status === 401 || e.status === 403 ? 'La chiave non funziona più: forse è scaduta, va rifatta.' : 'Non riesco a raggiungere GitHub. Sei online?'); }
+    const players = [];
+    for (const f of list || []) if (f.name.endsWith('.json')) {
+      const j = await this.api('GET', f.path).catch(() => null);
+      let nome = f.name.replace(/\.json$/, '');
+      try { nome = JSON.parse(fromB64(j.content)).name || nome; } catch (e) { }
+      players.push({ slug: f.name.replace(/\.json$/, ''), name: nome });
+    }
+    return players;
   },
-  async login(email, password) {
-    try { this.keep(await this.auth('token?grant_type=password', { email: email.trim(), password })); }
-    catch (e) { throw new Error(e.status === 400 ? 'Email o password non corrette.' : 'Non riesco a raggiungere il server. Sei online?'); }
+  // 2) si sceglie chi si è (un giocatore esistente o uno nuovo)
+  async choose(name) {
+    if (!this.pending) throw new Error('Prima la password.');
+    this.keep({ token: this.pending.token, slug: slugOf(name), name: name.trim() });
+    this.pending = null; this.sha = null;
+    if (!Store.data.name) { Store.data.name = name.trim(); Store.save(true); }
     await this.pull(true);
   },
-  async logout() {
-    try { if (this.session) await fetch(CONFIG.supabase.url + '/auth/v1/logout', { method: 'POST', headers: this.headers(true) }); } catch (e) { }
-    this.keep(null); this.others = []; this.status = 'off';
-  },
-  async fresh() {
-    if (!this.session) return false;
-    if (this.session.expires_at - 60 > Date.now() / 1000) return true;
-    try { this.keep(await this.auth('token?grant_type=refresh_token', { refresh_token: this.session.refresh_token })); return true; }
-    catch (e) { if (e.status === 400 || e.status === 401) this.keep(null); return false; }   // sessione scaduta davvero: si rientra
-  },
-  async rest(method, query, body, prefer) {
-    const h = this.headers(true); if (prefer) h.Prefer = prefer;
-    const r = await fetch(CONFIG.supabase.url + '/rest/v1/' + query, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
-    if (!r.ok) throw new Error('rest ' + r.status);
-    return r.status === 204 || method !== 'GET' ? null : r.json();
-  },
-  // scarica tutto, unisce i miei progressi con quelli dell'altro dispositivo, rimanda su
-  async pull(force) {
+  async logout() { this.keep(null); this.others = []; this.status = 'off'; this.sha = null; },
+  // scarica tutti i file, unisce i miei progressi con quelli dell'altro dispositivo, rimanda su i miei
+  async pull() {
     if (!this.on || !this.logged) return;
     if (this.busy) return this.busy;
     this.busy = (async () => {
       try {
-        if (!(await this.fresh())) { this.status = 'uscito'; return; }
-        const rows = await this.rest('GET', 'progressi?select=id,nome,colore,dati,aggiornato');
-        const me = this.session.user.id;
-        const mine = rows.find(r => r.id === me);
-        if (mine && mine.dati && mine.dati.v) Store.data = mergeData(Store.data, mine.dati);
-        this.others = rows.filter(r => r.id !== me && r.dati);
-        if (this.others.length) Store.data.rival = rivalFrom(this.others[0]);
+        const list = (await this.api('GET', 'progressi')) || [];
+        const others = [];
+        for (const f of list) {
+          if (!f.name.endsWith('.json')) continue;
+          const j = await this.api('GET', f.path); if (!j) continue;
+          let dati; try { dati = JSON.parse(fromB64(j.content)); } catch (e) { continue; }
+          if (f.name === this.session.slug + '.json') { this.sha = j.sha; if (dati && dati.v) Store.data = mergeData(Store.data, dati); }
+          else others.push({ nome: dati.name, colore: dati.colore, dati, aggiornato: dati.updated ? new Date(dati.updated).toISOString() : null });
+        }
+        this.others = others;
+        if (others.length) Store.data.rival = rivalFrom(others[0]);
         Store.save(true);
         await this.push();
         this.status = 'ok'; this.lastSync = Date.now();
-      } catch (e) { this.status = 'offline'; }
+      } catch (e) { this.status = e.status === 401 || e.status === 403 ? 'chiave' : 'offline'; }
       finally { this.busy = null; if (typeof refreshChrome === 'function') refreshChrome(); }
     })();
     return this.busy;
   },
-  async push() {
-    if (!this.on || !this.logged || !(await this.fresh())) return;
-    const d = Store.data;
-    await this.rest('POST', 'progressi?on_conflict=id', { id: this.session.user.id, nome: d.name || null, colore: d.colore, dati: Object.assign({}, d, { rival: null }), aggiornato: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal');
-    this.lastSync = Date.now(); this.status = 'ok';
+  async push(retry) {
+    if (!this.on || !this.logged) return;
+    const path = `progressi/${this.session.slug}.json`;
+    const body = { message: `Progressi di ${this.session.name}`, content: toB64(JSON.stringify(Object.assign({}, Store.data, { rival: null }))) };
+    if (this.sha) body.sha = this.sha;
+    try {
+      const r = await this.api('PUT', path, body);
+      this.sha = r && r.content ? r.content.sha : null; this.lastSync = Date.now(); this.status = 'ok';
+    } catch (e) {
+      // il file è cambiato da un altro dispositivo: si riscarica, si unisce e si riprova una volta
+      if ((e.status === 409 || e.status === 422) && !retry) {
+        const j = await this.api('GET', path);
+        if (j) { this.sha = j.sha; try { Store.data = mergeData(Store.data, JSON.parse(fromB64(j.content))); Store.save(true); } catch (x) { } }
+        return this.push(true);
+      }
+      throw e;
+    }
   },
   schedule() {
     if (!this.on || !this.logged) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.push().catch(() => { this.status = 'offline'; }), 2500);
+    this.timer = setTimeout(() => { if (!this.busy) this.push().catch(e => { this.status = e.status === 401 || e.status === 403 ? 'chiave' : 'offline'; }); }, 4000);
   },
 };
 

@@ -1,12 +1,12 @@
 // Service worker: il sito funziona anche senza internet.
 // Con la rete chiede sempre prima i file nuovi; la copia salvata serve solo offline.
 // A ogni pubblicazione cambia VERSION.
-const VERSION = 'cp28-2026-10-29-1';
+const VERSION = 'cp28-2026-10-29-2';
 importScripts('js/ornamenti.js');
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/config.js', 'js/util.js', 'js/engine.js', 'js/catalog.js', 'js/content.js', 'js/lezioni.js', 'js/ornamenti.js',
-  'js/store.js', 'js/sync.js', 'js/goban.js', 'js/player.js', 'js/game.js', 'js/views.js',
+  'js/store.js', 'js/chiave.js', 'js/sync.js', 'js/goban.js', 'js/player.js', 'js/game.js', 'js/views.js',
   'img/greca.svg', 'img/intaglio.svg', 'img/icon-192.png', 'img/icon-512.png', 'img/apple-touch-icon.png',
 ];
 // cache: 'reload' scavalca la cache del browser (GitHub Pages la tiene 10 minuti): si salvano i file appena pubblicati
