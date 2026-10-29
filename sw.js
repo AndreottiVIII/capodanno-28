@@ -1,7 +1,7 @@
 // Service worker: il sito funziona anche senza internet.
 // Con la rete chiede sempre prima i file nuovi; la copia salvata serve solo offline.
 // A ogni pubblicazione cambia VERSION.
-const VERSION = 'cp28-2026-10-29-3';
+const VERSION = 'cp28-2026-10-29-4';
 importScripts('js/ornamenti.js');
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',

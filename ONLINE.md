@@ -9,7 +9,7 @@ Ognuno di voi entra una volta per dispositivo: scrive la password, sceglie chi �
 1. **Il repository.** Su https://github.com/new crea `capodanno-28-progressi`, **Private**, con **Add README** acceso.
 2. **La chiave.** Su https://github.com/settings/personal-access-tokens/new:
    - Token name: `capodanno-28 progressi`
-   - Expiration: **Custom**, la data più lontana possibile (un anno)
+   - Expiration: **No expiration** (la chiave tocca solo il repository dei progressi)
    - Repository access: **Only select repositories** → `capodanno-28-progressi`
    - Permissions › Repository permissions › **Contents: Read and write** (Metadata si mette da sola)
    - **Generate token** e copialo.
@@ -23,9 +23,11 @@ Ognuno di voi entra una volta per dispositivo: scrive la password, sceglie chi �
 
    Scrive `js/chiave.js`. Poi dimmi "fatto" e pubblico io (oppure: `git add js/chiave.js`, commit, push).
 
-## Ogni anno
+## Se serve cambiarla
 
-La chiave scade dopo un anno (ottobre 2027). Ripeti i passi 2, 3 e 5 con la stessa password: i progressi restano dove sono. Claude non crea chiavi: questa la fai tu.
+La chiave non scade. Se la password finisse in mani sbagliate: revoca la chiave su https://github.com/settings/personal-access-tokens, poi ripeti i passi 2-5 con una password nuova. I progressi restano dove sono. Claude non crea chiavi: questa la fai tu.
+
+Scorciatoia per i passi 3-5: `powershell -ExecutionPolicy Bypass -File .\tools\chiave.ps1` apre il Blocco note per la chiave, chiede la password senza mostrarla, cifra e pubblica.
 
 ## Come funziona
 
